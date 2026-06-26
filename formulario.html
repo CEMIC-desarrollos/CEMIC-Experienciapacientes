@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEMIC — Formulario de Presentaciones</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-dark: #0f3d22;
+    --green-main: #1e7a44;
+    --green-mid:  #2a9d5c;
+    --green-light:#e8f5ee;
+    --accent:     #f0a500;
+    --text:       #1a2e1f;
+    --text-muted: #5a7a63;
+    --border:     #c8e0d0;
+    --surface:    #ffffff;
+    --bg:         #f2f7f4;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ─────────────────────────────────────── */
+  header {
+    background: var(--green-dark);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-logo { height: 36px; }
+  .header-title {
+    font-family: 'DM Serif Display', serif;
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 400;
+  }
+  .header-sub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── HERO ────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(135deg, var(--green-main) 0%, var(--green-dark) 100%);
+    color: white;
+    text-align: center;
+    padding: 48px 24px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+  .hero p {
+    font-size: 0.95rem;
+    opacity: 0.8;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── FORM CARD ───────────────────────────────────── */
+  .form-wrapper {
+    max-width: 680px;
+    margin: -28px auto 48px;
+    padding: 0 16px;
+    position: relative;
+    z-index: 10;
+  }
+  .form-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    overflow: hidden;
+  }
+
+  /* ── STEPS ───────────────────────────────────────── */
+  .steps-bar {
+    display: flex;
+    background: var(--green-light);
+    border-bottom: 1px solid var(--border);
+  }
+  .step {
+    flex: 1;
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .step.active {
+    color: var(--green-main);
+    border-bottom-color: var(--green-main);
+    background: white;
+  }
+  .step.done {
+    color: var(--green-mid);
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    margin-right: 5px;
+    font-weight: 700;
+  }
+  .step.active .step-num { background: var(--green-main); color: white; }
+  .step.done .step-num { background: var(--green-mid); color: white; }
+
+  /* ── SECTIONS ────────────────────────────────────── */
+  .form-section { display: none; padding: 32px; }
+  .form-section.active { display: block; }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: var(--green-dark);
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .form-group label .req { color: #dc2626; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--green-main);
+    box-shadow: 0 0 0 3px rgba(30,122,68,0.12);
+  }
+  .form-group textarea { min-height: 120px; resize: vertical; }
+  .form-group input.error,
+  .form-group select.error,
+  .form-group textarea.error {
+    border-color: #dc2626;
+    background: #fff5f5;
+  }
+
+  /* Tipo selector cards */
+  .tipo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .tipo-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+  }
+  .tipo-card:hover { border-color: var(--green-mid); background: var(--green-light); }
+  .tipo-card.selected { border-color: var(--green-main); background: var(--green-light); }
+  .tipo-card .tipo-icon { font-size: 1.6rem; margin-bottom: 6px; display: block; }
+  .tipo-card .tipo-label { font-size: 0.75rem; font-weight: 600; color: var(--text); }
+
+  /* Navigation buttons */
+  .form-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .btn {
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--green-main);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--green-main); color: var(--green-main); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Error message */
+  .error-msg {
+    background: #fff5f5;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: #dc2626;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* ── SUCCESS SCREEN ──────────────────────────────── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 48px 32px;
+  }
+  .success-screen.show { display: block; }
+  .success-icon {
+    width: 72px; height: 72px;
+    background: var(--green-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 20px;
+    border: 3px solid var(--green-main);
+  }
+  .success-screen h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+  .success-screen p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto 24px;
+  }
+  .caso-numero {
+    display: inline-block;
+    background: var(--green-main);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  .btn-nueva {
+    background: var(--green-light);
+    color: var(--green-main);
+    border: 2px solid var(--green-main);
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  /* ── FOOTER ──────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* Loading overlay */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-overlay p { color: white; font-size: 0.9rem; font-weight: 500; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="header-title">CEMIC</div>
+    <div class="header-sub">Centro de Educación Médica e Investigaciones Clínicas</div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Tu opinión nos importa</h1>
+  <p id="hero-sub">Completá este formulario para contarnos tu experiencia.</p>
+</div>
+
+<!-- FORM -->
+<div class="form-wrapper">
+  <div class="form-card">
+
+    <!-- STEPS BAR -->
+    <div class="steps-bar">
+      <div class="step active" id="step-tab-1"><span class="step-num">1</span> Tipo</div>
+      <div class="step" id="step-tab-2"><span class="step-num">2</span> Sede</div>
+      <div class="step" id="step-tab-3"><span class="step-num">3</span> Tus datos</div>
+      <div class="step" id="step-tab-4"><span class="step-num">4</span> Relato</div>
+    </div>
+
+    <!-- SECTION 1: TIPO -->
+    <div class="form-section active" id="section-1">
+      <div class="section-title">¿Qué querés comunicarnos?</div>
+      <div class="section-desc">Seleccioná el tipo de presentación que mejor describe tu situación.</div>
+
+      <div class="tipo-grid">
+        <div class="tipo-card" onclick="selectTipo(this, 'Felicitación')">
+          <span class="tipo-icon">🌟</span>
+          <span class="tipo-label">Felicitación</span>
+        </div>
+        <div class="tipo-card" onclick="selectTipo(this, 'Sugerencia')">
+          <span class="tipo-icon">💡</span>
+          <span class="tipo-label">Sugerencia</span>
+        </div>
+        <div class="tipo-card" onclick="selectTipo(this, 'Queja / Reclamo')">
+          <span class="tipo-icon">📝</span>
+          <span class="tipo-label">Reclamo</span>
+        </div>
+      </div>
+
+      <input type="hidden" id="f-tipo">
+
+      <!-- Motivo Queja/Reclamo: eliminado del formulario público, lo asigna el gestor -->
+      <input type="hidden" id="f-motivo-queja" value="">
+      <div id="otro-queja" style="display:none"></div>
+
+      <!-- MOTIVO FELICITACIÓN - no requerido -->
+      <div id="bloque-motivo-felicitacion" style="display:none!important">
+        <input type="hidden" id="f-motivo-felicitacion" value="">
+        <div id="otro-felicitacion" style="display:none"></div>
+      </div>
+
+      <!-- TEXTO LIBRE SUGERENCIA/DENUNCIA - solo indicador visual -->
+      <div id="bloque-texto-libre" style="display:none">
+        <input type="hidden" id="f-motivo-libre" value="">
+      </div>
+
+      <input type="hidden" id="f-motivo">
+
+      <div class="error-msg" id="err-1">Por favor seleccioná el tipo de presentación.</div>
+
+      <div class="form-nav">
+        <span></span>
+        <button class="btn btn-primary" onclick="goTo(2)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- SECTION 2: SEDE -->
+    <div class="form-section" id="section-2">
+      <div class="section-title">¿En qué sede ocurrió?</div>
+      <div class="section-desc">Indicanos la sede y el servicio o sector involucrado.</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sede <span class="req">*</span></label>
+          <select id="f-sede" onchange="updateSectoresFormulario()">
+            <option value="">Seleccioná una sede...</option>
+            <option>Saavedra</option>
+            <option>Pombo</option>
+            <option>Las Heras</option>
+            <option>Talcahuano</option>
+            <option>Ballester</option>
+            <option>San Isidro</option>
+            <option>Belgrano</option>
+            <option>Carabobo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Servicio / Sector</label>
+          <select id="f-servicio">
+            <option value="">— primero elegí la sede —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="error-msg" id="err-2">Por favor seleccioná la sede.</div>
+
+      <div class="form-nav">
+        <button class="btn btn-secondary" onclick="goTo(1)">← Anterior</button>
+        <button class="btn btn-primary" onclick="goTo(3)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- SECTION 3: DATOS PERSONALES -->
+    <div class="form-section" id="section-3">
+      <div class="section-title">Tus datos</div>
+      <div class="section-desc">Tus datos nos permiten darte una respuesta personalizada. Son confidenciales y solo los verá el equipo de CEMIC.</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Apellido <span class="req">*</span></label>
+          <input type="text" id="f-apellido" placeholder="García">
+        </div>
+        <div class="form-group">
+          <label>Nombre <span class="req">*</span></label>
+          <input type="text" id="f-nombre" placeholder="María">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>DNI <span class="req">*</span></label>
+          <input type="text" id="f-dni" placeholder="12345678" maxlength="10"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div class="form-group">
+          <label>Teléfono <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400">(opcional)</span></label>
+          <input type="tel" id="f-telefono" placeholder="1112345678" maxlength="15"
+            oninput="this.value=this.value.replace(/[^0-9+\-\s]/g,'')">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Mail <span class="req">*</span></label>
+          <input type="email" id="f-mail" placeholder="mail@ejemplo.com">
+        </div>
+      </div>
+
+      <div class="error-msg" id="err-3">Por favor completá los campos obligatorios.</div>
+
+      <div class="form-nav">
+        <button class="btn btn-secondary" onclick="goTo(2)">← Anterior</button>
+        <button class="btn btn-primary" onclick="goTo(4)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- SECTION 4: RELATO -->
+    <div class="form-section" id="section-4">
+      <div class="section-title">Describí tu experiencia con el mayor detalle posible.</div>
+      <div class="section-desc">Muchas gracias.</div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Descripción del hecho <span class="req">*</span></label>
+          <textarea id="f-relato" placeholder="Describí detalladamente lo ocurrido: fecha, horario, personas involucradas, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="error-msg" id="err-4">Por favor describí el hecho antes de enviar.</div>
+
+      <div class="form-nav">
+        <button class="btn btn-secondary" onclick="goTo(3)">← Anterior</button>
+        <button class="btn btn-primary" id="btn-enviar" onclick="enviarFormulario()">Enviar presentación ✓</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✅</div>
+      <h2 id="success-title">¡Presentación enviada!</h2>
+      <div class="caso-numero" id="success-numero"></div>
+      <p>Tu presentación fue registrada correctamente. El equipo de CEMIC la revisará a la brevedad.</p>
+      <div id="bloque-google-review" style="display:none;margin:20px 0;padding:18px 20px;background:#f0fdf4;border-radius:12px;border:1.5px solid #bbf7d0;text-align:left;font-size:0.9rem;color:#1a2e1f;line-height:1.6">
+        Tu experiencia puede inspirar a otros. Si deseás ayudarnos a que más pacientes conozcan el compromiso de nuestro equipo médico y asistencial, te invitamos a dejar una reseña en Google haciendo
+        <a id="link-google-review" href="https://maps.app.goo.gl/CkTUctaSRanc6PMY8" target="_blank" rel="noopener" style="color:var(--green-main);font-weight:600;text-decoration:underline">clic aquí</a>.
+        <br><br>
+        Gracias de nuevo por tu confianza en nosotros.<br>
+        <strong>Equipo de Experiencia del Paciente · CEMIC</strong>
+      </div>
+      <button class="btn-nueva" onclick="nuevaPresentacion()">+ Nueva presentación</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  CEMIC · Equipo de Experiencia del Paciente · Todos los datos son confidenciales
+</footer>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p>Enviando tu presentación...</p>
+</div>
+
+<script>
+// ─── FIREBASE ──────────────────────────────────────
+var firebaseConfig = {
+  apiKey: "AIzaSyBqQGuzCbkZKRZ8h3P43EBpxnH5OrLr6Vs",
+  authDomain: "quejas-7261b.firebaseapp.com",
+  projectId: "quejas-7261b",
+  storageBucket: "quejas-7261b.firebasestorage.app",
+  messagingSenderId: "878965406600",
+  appId: "1:878965406600:web:ad112cc01410c8ad35d83d"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+var casosRef = db.collection('casos');
+
+// ─── EMAILJS ───────────────────────────────────────
+var EMAILJS_PUBLIC_KEY  = 'nS7aYbFLrj5yl4sZb';
+var EMAILJS_SERVICE_ID  = 'service_e44ykfo';
+var EMAILJS_TEMPLATE_ID = 'template_6vwexef';
+try { emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); } catch(e) {}
+
+var currentStep = 1;
+var tipoSeleccionado = '';
+
+// ─── NAVEGACIÓN ────────────────────────────────────
+function goTo(step) {
+  if (step > currentStep && !validateStep(currentStep)) return;
+  currentStep = step;
+  document.querySelectorAll('.form-section').forEach(function(s, i) {
+    s.classList.toggle('active', i + 1 === step);
+  });
+  document.querySelectorAll('.step').forEach(function(s, i) {
+    s.classList.remove('active', 'done');
+    if (i + 1 === step) s.classList.add('active');
+    if (i + 1 < step) s.classList.add('done');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(step) {
+  var err = document.getElementById('err-' + step);
+  var valid = true;
+
+  if (step === 1) {
+    if (!tipoSeleccionado) { err.style.display = 'block'; valid = false; return valid; }
+    // Motivo ya no es requerido desde el formulario
+    var motivo = getMotivoSeleccionado();
+    document.getElementById('f-motivo').value = motivo || '';
+    err.style.display = 'none';
+  }
+  if (step === 2) {
+    var sede = document.getElementById('f-sede').value;
+    var servicio = document.getElementById('f-servicio').value;
+    var err2 = document.getElementById('err-2');
+    if (!sede) {
+      if (err2) err2.textContent = 'Por favor seleccioná la sede.';
+      err.style.display = 'block'; valid = false;
+    } else if (!servicio) {
+      if (err2) err2.textContent = 'Por favor seleccioná el sector o servicio.';
+      err.style.display = 'block'; valid = false;
+    } else { err.style.display = 'none'; }
+  }
+  if (step === 3) {
+    var ap = document.getElementById('f-apellido').value.trim();
+    var nm = document.getElementById('f-nombre').value.trim();
+    var dn = document.getElementById('f-dni').value.trim();
+    var mail = document.getElementById('f-mail').value.trim();
+    var errEl = document.getElementById('err-3');
+
+    if (!ap || !nm || !dn) {
+      errEl.textContent = 'Por favor completá Apellido, Nombre y DNI.';
+      errEl.style.display = 'block'; valid = false;
+    } else if (dn.length < 7 || dn.length > 9) {
+      errEl.textContent = 'El DNI debe tener entre 7 y 9 dígitos.';
+      errEl.style.display = 'block'; valid = false;
+    } else if (!mail) {
+      errEl.textContent = 'El mail es obligatorio para poder enviarte una respuesta.';
+      errEl.style.display = 'block'; valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      errEl.textContent = 'El formato del mail no es válido.';
+      errEl.style.display = 'block'; valid = false;
+    } else {
+      errEl.style.display = 'none';
+    }
+  }
+  if (step === 4) {
+    if (!document.getElementById('f-relato').value.trim()) {
+      err.style.display = 'block'; valid = false;
+    } else { err.style.display = 'none'; }
+  }
+  return valid;
+}
+
+function selectTipo(el, tipo) {
+  document.querySelectorAll('.tipo-card').forEach(function(c) { c.classList.remove('selected'); });
+  el.classList.add('selected');
+  tipoSeleccionado = tipo;
+  document.getElementById('f-tipo').value = tipo;
+
+  // Mostrar bloque correspondiente
+  document.getElementById('bloque-motivo-queja').style.display = 'none';
+  document.getElementById('bloque-motivo-felicitacion').style.display = 'none';
+
+  if (tipo === 'Felicitación') {
+    document.getElementById('bloque-motivo-felicitacion').style.display = 'block';
+  }
+  document.getElementById('f-motivo').value = '';
+}
+
+function toggleOtroServicio() {
+  var sel = document.getElementById('f-servicio').value;
+  var div = document.getElementById('otro-servicio');
+  div.style.display = sel === 'Otro' ? 'block' : 'none';
+  if (sel !== 'Otro') {
+    document.getElementById('f-servicio-otro').value = '';
+  }
+}
+
+function getServicioSeleccionado() {
+  var sel = document.getElementById('f-servicio').value;
+  if (sel === 'Otro') {
+    var otro = document.getElementById('f-servicio-otro').value.trim();
+    return otro ? 'Otro: ' + otro : 'Otro';
+  }
+  return sel;
+}
+
+function toggleOtroQueja() {
+  var sel = document.getElementById('f-motivo-queja').value;
+  document.getElementById('otro-queja').style.display = sel === 'Otro' ? 'block' : 'none';
+}
+
+function toggleOtroFelicitacion() {
+  var sel = document.getElementById('f-motivo-felicitacion').value;
+  document.getElementById('otro-felicitacion').style.display = sel === 'Otro' ? 'block' : 'none';
+}
+
+// ─── ENVIAR ────────────────────────────────────────
+function addBusinessDays(date, days) {
+  var result = new Date(date);
+  var added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    var dow = result.getDay();
+    if (dow !== 0 && dow !== 6) added++;
+  }
+  // Format as YYYY-MM-DD using local date (avoid timezone offset)
+  var y = result.getFullYear();
+  var m = String(result.getMonth() + 1).padStart(2, '0');
+  var d = String(result.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
+
+var SEDE_SECTORES_MAP_FORM = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"]};
+
+function updateSectoresFormulario() {
+  var sede = document.getElementById('f-sede').value;
+  var sel = document.getElementById('f-servicio');
+  sel.innerHTML = '<option value="">Seleccioná un sector...</option>';
+  var sectores = SEDE_SECTORES_MAP_FORM[sede] || [];
+  sectores.forEach(function(s) {
+    sel.innerHTML += '<option>' + s + '</option>';
+  });
+}
+
+var GOOGLE_REVIEW_LINKS = {"Saavedra": "https://g.page/r/CYAIVxdhkhdBEBM/review", "Pombo": "https://g.page/r/Ceh_w4hbqwkUEBM/review", "Las Heras": "https://g.page/r/CUp6mIq_4ClFEBM/review", "Talcahuano": "https://g.page/r/CbVHmC9kIGLQEBM/review", "Belgrano": "https://g.page/r/CbL02sHIRYx-EBM/review", "San Isidro": "https://g.page/r/CQPBzS_LuzYyEBM/review", "Ballester": "https://g.page/r/CaVrqhDW4BKXEBM/review", "Carabobo": "https://maps.app.goo.gl/CkTUctaSRanc6PMY8"};
+
+function buildMensajeConfirmacion(caso, id) {
+  var tipo = caso.tipo || '';
+  var sede = caso.sede || '';
+  var idStr = 'N° de Gestión: ' + id;
+  if (tipo === 'Sugerencia') {
+    return 'Queremos agradecerte por tomarte el tiempo de escribirnos y compartir tu mirada con nosotros. Para todo el equipo de CEMIC, conocer tu experiencia es fundamental.\n\n' + idStr + '\n\nGracias de nuevo por ayudarnos a mejorar día a día.\n\nEquipo de Experiencia del Paciente\nCEMIC';
+  } else if (tipo === 'Queja / Reclamo') {
+    return 'Queremos agradecerte por tomarte el tiempo de escribirnos y hacernos saber lo ocurrido. Lamentamos que tu experiencia reciente no haya sido la que esperabas.\n\nTu mensaje es una herramienta clave para que nuestro equipo analice lo sucedido y podamos tomar acciones inmediatas que eviten que vuelva a ocurrir.\n\n' + idStr + '\n\nNuestro equipo ya se encuentra trabajando para darte una devolución en el menor tiempo posible.\n\nGracias de nuevo por ayudarnos a mejorar día a día.\n\nEquipo de Experiencia del Paciente\nCEMIC';
+  } else if (tipo === 'Felicitación') {
+    var googleLink = (typeof GOOGLE_REVIEW_LINKS !== 'undefined' && GOOGLE_REVIEW_LINKS[caso.sede])
+      ? GOOGLE_REVIEW_LINKS[caso.sede]
+      : 'https://maps.app.goo.gl/CkTUctaSRanc6PMY8';
+    return '¡Muchas gracias por tomarte el tiempo de compartir tu experiencia con nosotros! Nos alegra saber que tuvimos un impacto positivo en tu paso por la institución. Haremos llegar tus palabras al personal y a los equipos correspondientes.\n\n' + idStr + '\n\nTu experiencia puede inspirar a otros. Si deseás ayudarnos a que más pacientes conozcan el compromiso de nuestro equipo médico y asistencial, te invitamos a dejar una reseña en Google: ' + googleLink + '\n\nGracias de nuevo por tu confianza en nosotros.\n\nEquipo de Experiencia del Paciente\nCEMIC';
+  }
+  return 'Tu presentación fue recibida correctamente y está siendo procesada por nuestro equipo.\n\n' + idStr + '\n\nGracias por contactarte con CEMIC.\n\nEquipo de Experiencia del Paciente\nCEMIC';
+}
+
+function enviarFormulario() {
+  if (!validateStep(4)) return;
+
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('btn-enviar').disabled = true;
+
+  var now = new Date();
+  var fecha = now.toISOString().split('T')[0];
+  var hora = now.toTimeString().slice(0, 5);
+
+  // Obtener el próximo ID
+  casosRef.orderBy('id', 'desc').limit(1).get().then(function(snap) {
+    var maxId = 0;
+    snap.forEach(function(doc) { maxId = doc.data().id || 0; });
+    var nuevoId = maxId + 1;
+
+    var _sede = document.getElementById('f-sede').value;
+    var _servicio = getServicioSeleccionado();
+    var _motivo = getMotivoSeleccionado();
+    var caso = {
+      id:               nuevoId,
+      fecha:            fecha,
+      hora:             hora,
+      sede:             _sede,
+      servicio:         _servicio,
+      tipo:             tipoSeleccionado,
+      motivo:           _motivo,
+      apellido:         document.getElementById('f-apellido').value.trim(),
+      nombre:           document.getElementById('f-nombre').value.trim(),
+      dni:              document.getElementById('f-dni').value.trim(),
+      telefono:         document.getElementById('f-telefono').value.trim(),
+      mail_presentante: document.getElementById('f-mail').value.trim(),
+      criticidad:       '',
+      responsable:      '',
+      responsable_email:'',
+      estado:           'Caso Nuevo',
+      vencimiento:      addBusinessDays(new Date(), 5),
+      relato:           document.getElementById('f-relato').value.trim(),
+      respuesta:        '',
+      accion:           '',
+      origen:           'formulario_publico',
+      // Formato gestiones[] compatible con el tablero
+      gestiones: [{
+        sede: _sede,
+        sector: _servicio,
+        motivo: _motivo,
+        criticidad: '',
+        responsable: '',
+        responsable_email: '',
+        responsable_email_real: '',
+        vencimiento: addBusinessDays(new Date(), 5),
+        respuesta: '',
+        accion: ''
+      }]
+    };
+
+    return casosRef.doc(String(nuevoId)).set(caso).then(function() {
+      // Notificar al admin
+      try {
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          to_email:  'experienciapacientes@cemic.edu.ar',
+          to_name:   'Administrador CEMIC',
+          caso_id:   nuevoId,
+          caso_tipo: caso.tipo,
+          caso_sede: caso.sede,
+          caso_crit: 'Por evaluar',
+          paciente:  caso.apellido + ' ' + caso.nombre,
+          app_url:   'https://csalgado-ui.github.io/formulario-equipoexperienciapacientes/tablero_quejas.html',
+          message:   'Se recibio una nueva presentacion a traves del formulario publico de CEMIC. Por favor revise el sistema para asignar responsable y nivel de criticidad.'
+        });
+      } catch(e) {}
+
+      // Confirmación al presentante (si tiene mail)
+      if (caso.mail_presentante && caso.mail_presentante.trim()) {
+        try {
+          emailjs.send(EMAILJS_SERVICE_ID, 'template_n6t2u5q', {
+            to_email:  caso.mail_presentante.trim(),
+            to_name:   caso.apellido + ' ' + caso.nombre,
+            caso_id:   nuevoId,
+            caso_tipo: caso.tipo,
+            caso_sede: caso.sede,
+            message:   buildMensajeConfirmacion(caso, nuevoId),
+          });
+        } catch(e) { console.error('Error confirmacion:', e); }
+      }
+
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('success-numero').textContent = 'N° de Gestión: ' + nuevoId;
+      // Título dinámico según tipo
+      var tipoSucc = tipoSeleccionado || '';
+      var titleText = tipoSucc === 'Felicitación' ? '¡Tu felicitación ha sido enviada!'
+        : tipoSucc === 'Sugerencia' ? '¡Tu sugerencia ha sido enviada!'
+        : tipoSucc === 'Queja / Reclamo' ? '¡Tu reclamo ha sido enviado!'
+        : '¡Tu presentación ha sido enviada!';
+      var titleEl = document.getElementById('success-title');
+      if (titleEl) titleEl.textContent = titleText;
+      document.querySelectorAll('.form-section').forEach(function(s) { s.classList.remove('active'); });
+      document.querySelector('.steps-bar').style.display = 'none';
+      document.getElementById('success-screen').classList.add('show');
+      var heroSub = document.getElementById('hero-sub');
+      if (heroSub) heroSub.style.display = 'none';
+      // Mostrar bloque Google Review solo para Felicitación
+      var reviewBloque = document.getElementById('bloque-google-review');
+      if (reviewBloque) {
+        reviewBloque.style.display = caso.tipo === 'Felicitación' ? 'block' : 'none';
+        if (caso.tipo === 'Felicitación') {
+          var sedeLink = GOOGLE_REVIEW_LINKS[caso.sede] || 'https://maps.app.goo.gl/CkTUctaSRanc6PMY8';
+          var linkEl = document.getElementById('link-google-review');
+          if (linkEl) linkEl.href = sedeLink;
+        }
+      }
+    });
+
+  }).catch(function(e) {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('btn-enviar').disabled = false;
+    alert('Hubo un error al enviar. Por favor intentá nuevamente.');
+    console.error(e);
+  });
+}
+
+function getMotivoSeleccionado() {
+  if (tipoSeleccionado === 'Queja / Reclamo') {
+    var sel = document.getElementById('f-motivo-queja').value;
+    return sel || '';
+  } else if (tipoSeleccionado === 'Felicitación') {
+    var sel2 = document.getElementById('f-motivo-felicitacion').value;
+    return sel2 || '';
+  } else {
+    // Sugerencia, Denuncia - sin motivo requerido
+    return tipoSeleccionado;
+  }
+}
+
+function nuevaPresentacion() {
+  tipoSeleccionado = '';
+  document.querySelectorAll('.tipo-card').forEach(function(c) { c.classList.remove('selected'); });
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-motivo').value = '';
+  document.getElementById('f-motivo-queja').value = '';
+  document.getElementById('f-motivo-felicitacion').value = '';
+
+  var safe = ['f-motivo-libre','f-motivo-otro-queja','f-motivo-otro-felicitacion',
+              'bloque-motivo-queja','bloque-motivo-felicitacion','bloque-texto-libre',
+              'otro-queja','otro-felicitacion'];
+  safe.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = '';
+    else el.style.display = 'none';
+  });
+
+  document.getElementById('f-sede').value = '';
+  var fServ = document.getElementById('f-servicio');
+  if (fServ) { fServ.innerHTML = '<option value="">— primero elegí la sede —</option>'; }
+  document.getElementById('f-servicio').value = '';
+  var otroServ = document.getElementById('f-servicio-otro');
+  if (otroServ) { otroServ.value = ''; }
+  var otroServDiv = document.getElementById('otro-servicio');
+  if (otroServDiv) { otroServDiv.style.display = 'none'; }
+  document.getElementById('f-apellido').value = '';
+  document.getElementById('f-nombre').value = '';
+  document.getElementById('f-dni').value = '';
+  document.getElementById('f-telefono').value = '';
+  document.getElementById('f-mail').value = '';
+  document.getElementById('f-relato').value = '';
+  document.getElementById('success-screen').classList.remove('show');
+  var heroSub = document.getElementById('hero-sub');
+  if (heroSub) heroSub.style.display = '';
+  document.querySelector('.steps-bar').style.display = 'flex';
+  document.getElementById('btn-enviar').disabled = false;
+  goTo(1);
+}
+</script>
+</body>
+</html>
