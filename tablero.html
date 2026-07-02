@@ -2694,15 +2694,22 @@ function renderUserView() {
     const tipoClass = tipoMap[d.tipo] || 'quejareclamo';
     // Obtener la gestión que corresponde a este responsable
     var miGestion = null;
-    if (d.gestiones) {
+    if (d.gestiones && d.gestiones.length > 0) {
+      console.log('[DEBUG] caso #'+d.id+' myEmail:'+myEmail+' gestiones:', d.gestiones.map(function(g){ return {real: g.responsable_email_real, email: g.responsable_email}; }));
+      // Buscar gestión exacta por email_real o email
       miGestion = d.gestiones.find(function(g){
-        return (g.responsable_email_real||g.responsable_email||'').toLowerCase() === myEmail;
-      }) || d.gestiones[0];
+        return (g.responsable_email_real||'').toLowerCase() === myEmail ||
+               (g.responsable_email||'').toLowerCase() === myEmail;
+      });
+      console.log('[DEBUG] miGestion encontrada:', miGestion ? 'sí - respuesta:'+miGestion.respuesta : 'no');
+      // Solo fallback a gestión 0 si hay una sola gestión
+      if (!miGestion && d.gestiones.length === 1) miGestion = d.gestiones[0];
     }
     var vencGestion = (miGestion && miGestion.vencimiento) || d.vencimiento || '';
     const v = isVencido(vencGestion, d.estado);
-    const respGuardada = (miGestion && miGestion.respuesta) || d.respuesta || '';
-    const accionGuardada = (miGestion && miGestion.accion) || d.accion || '';
+    // Solo leer respuesta/accion de la gestión específica, no del root (evita duplicar entre gestiones)
+    const respGuardada = (miGestion && miGestion.respuesta) || '';
+    const accionGuardada = (miGestion && miGestion.accion) || '';
     const estadoResp = d.estado_respuesta || 'Pendiente';
     return `
     <div class="case-card ${tipoClass}" id="case-card-${d.id}">
@@ -2812,9 +2819,16 @@ function saveUserResp(id) {
       var gIdx = data[idx].gestiones.findIndex(function(g){
         return (g.responsable_email_real||g.responsable_email||'').toLowerCase() === myEmailReal;
       });
-      if (gIdx === -1) gIdx = 0; // fallback a primera gestión
-      data[idx].gestiones[gIdx].respuesta = respuesta;
-      data[idx].gestiones[gIdx].accion = accion;
+      if (gIdx === -1) {
+        // No encontró gestión — buscar por email sin real como fallback
+        gIdx = data[idx].gestiones.findIndex(function(g){
+          return (g.responsable_email||'').toLowerCase() === myEmailReal;
+        });
+      }
+      if (gIdx !== -1) {
+        data[idx].gestiones[gIdx].respuesta = respuesta;
+        data[idx].gestiones[gIdx].accion = accion;
+      }
     }
     // Si hay respuesta o acción → cambiar estado del caso a "Respuesta del Responsable"
     const nuevoEstado = (respuesta.trim() || accion.trim()) ? 'Respuesta enviada' : 'Pendiente';
@@ -3561,7 +3575,7 @@ function enviarRespuestaPresentanteManual() {
     caso_sede: sede,
     caso_crit: caso ? (caso.criticidad || '—') : '—',
     paciente:  nombre || 'Presentante',
-    app_url:   'https://csalgado-ui.github.io/formulario-equipoexperienciapacientes/tablero_quejas.html',
+    app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
     message:   resp,
   }).then(function() {
     alert('✅ Respuesta enviada correctamente a ' + mail);
@@ -3576,7 +3590,7 @@ function enviarRespuestaPresentanteManual() {
         caso_sede: caso.sede,
         caso_crit: caso.criticidad || '—',
         paciente:  `${caso.apellido||''} ${caso.nombre||''}`,
-        app_url:   'https://csalgado-ui.github.io/formulario-equipoexperienciapacientes/tablero_quejas.html',
+        app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
         message:   `Se informó al paciente la siguiente respuesta:\n\n"${resp}"\n\nEl caso #${caso.id} ha sido marcado como CERRADO.`
       }).catch(err => console.warn('Notif responsable cierre:', err));
     }
@@ -3995,10 +4009,18 @@ function cerrarCaso() {
     if (obsAdmin) data[idx].obs_admin = obsAdmin;
     data[idx].estado = 'Cerrado';
     if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
+    // Merge gestionesData (editado en el modal) en data[idx] antes de notificar
+    if (gestionesData && gestionesData.length > 0) {
+      data[idx].gestiones = gestionesData.map(function(g){ return Object.assign({}, g); });
+      // Actualizar también campos legacy en root
+      var g0 = gestionesData[0];
+      if (g0.responsable_email_real) data[idx].responsable_email_real = g0.responsable_email_real;
+      if (g0.responsable_email) data[idx].responsable_email = g0.responsable_email;
+      if (g0.responsable) data[idx].responsable = g0.responsable;
+    }
+    data[idx].id = editingId;
     saveCaso(data[idx]);
     // Enviar respuesta al presentante si tiene mail y respuesta
-    // Para Felicitación/Sugerencia es optativo (solo si hay texto en obs_admin)
-    // Para Reclamo es requerido (ya validado antes)
     if (obsAdmin && data[idx].mail_presentante) {
       sendRespuestaPresentante(data[idx]);
     }
@@ -4130,7 +4152,6 @@ function openModal(id) {
   const nowTime = new Date().toTimeString().slice(0,5);
   const d = id ? data.find(x => x.id===id) : null;
   const v = k => d ? (d[k]||'') : '';
-  var tipo_modal = d ? (d.tipo||'') : (document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '');
   var esCerrado = d && d.estado === 'Cerrado';
   document.getElementById('modal-title').textContent = esCerrado ? '🔒 Caso Cerrado' : (id ? '✏️ Editar Caso' : '🗃️ Nuevo Caso');
   document.getElementById('f-fecha').value      = d ? (d.fecha||today)    : today;
@@ -4167,6 +4188,14 @@ function openModal(id) {
     checkObsAdmin();
     toggleComentarioDir();
     toggleCerrarCaso();
+    // Controlar botón Guardar DESPUÉS de que f-tipo tiene su valor
+    var tipoActualModal = document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '';
+    var esFelSugNow = (tipoActualModal === 'Felicitación' || tipoActualModal === 'Sugerencia');
+    var esCerradoNow = (document.getElementById('f-estado') ? document.getElementById('f-estado').value : '') === 'Cerrado';
+    var btnG = document.getElementById('btn-guardar-modal');
+    var badgeC = document.getElementById('badge-caso-cerrado-modal');
+    if (btnG) btnG.style.display = (esFelSugNow || esCerradoNow) ? 'none' : '';
+    if (badgeC) badgeC.style.display = esCerradoNow ? 'inline-block' : 'none';
   }, 80);
   // Ahora que las gestiones estan cargadas, actualizar btn cerrar caso
   if (id) {
@@ -4176,7 +4205,8 @@ function openModal(id) {
     var btnCerrar2Final = document.getElementById('btn-cerrar-caso-2');
     if (btnCerrar2Final) btnCerrar2Final.style.display = (critAfter === 'Alta' || critAfter === 'Critica') ? 'inline-flex' : 'none';
   }
-  // Gestionar footer según tipo y estado
+  // Gestionar footer según tipo y estado — leer tipo DESPUÉS de que f-tipo fue seteado
+  var tipo_modal = d ? (d.tipo||'') : (document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '');
   var badgeCerrado = document.getElementById('badge-caso-cerrado-modal');
   var btnGuardarM3 = document.getElementById('btn-guardar-modal');
   var esFelSugModal = (tipo_modal === 'Felicitación' || tipo_modal === 'Sugerencia');
@@ -4428,7 +4458,7 @@ function sendCopiaResumen(nc, copiaEmails, gestIdx) {
       caso_id:      'N° de Gestión: ' + nc.id,
       caso_tipo:    nc.tipo || '',
       caso_sede:    sede,
-      caso_crit:    g0.criticidad || '',
+      caso_crit:    (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g0.criticidad || ''),
       caso_paciente:(nc.apellido||'')+' '+(nc.nombre||''),
       message:      resumen,
     }).then(function(){
@@ -4738,7 +4768,7 @@ function sendRespuestaPresentante(nc) {
 function sendNotificationEmails(nc) {
 
   if (!emailjsReady) { console.warn('[NOTIF] emailjsReady=false, abortando'); return; }
-  const appUrl = 'https://csalgado-ui.github.io/formulario-equipoexperienciapacientes/tablero_quejas.html';
+  const appUrl = 'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html';
 
   // Notificar a cada gestión
   var gestiones = nc.gestiones && nc.gestiones.length > 0 ? nc.gestiones : [nc];
@@ -4764,7 +4794,7 @@ function sendNotificationEmails(nc) {
       caso_id:   'N° de Gestión: ' + nc.id,
       caso_tipo: nc.tipo,
       caso_sede: g.sede || nc.sede,
-      caso_crit: g.criticidad,
+      caso_crit: (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g.criticidad || ''),
       paciente:  `${nc.apellido} ${nc.nombre}`,
       app_url:   appUrl,
       message:   mensajeResp
@@ -4777,7 +4807,7 @@ function sendNotificationEmails(nc) {
         to_email: emailDir,
         to_name: (g.sede||nc.sede) === 'Saavedra' ? 'Dirección Saavedra' : 'Dirección',
         caso_id: nc.id, caso_tipo: nc.tipo, caso_sede: g.sede||nc.sede,
-        caso_crit: g.criticidad, paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
+        caso_crit: (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g.criticidad || ''), paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
         message: `⚠️ CASO ${(g.criticidad||'').toUpperCase()}: caso en sede ${g.sede||nc.sede}. Requiere atencion.`
       }).catch(function(err){ console.warn('EmailJS dir:', err); });
     }
