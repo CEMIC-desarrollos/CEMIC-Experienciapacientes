@@ -4605,7 +4605,18 @@ function saveCase() {
       var notifEnviada = false;
       if (responableCambio || gestionEmailNueva) {
         if (!nc.id) nc.id = editingId;
-        sendNotificationEmails(nc);
+        // Solo notificar gestiones NUEVAS (email que no existía en casoAnterior)
+        var ncParaNotif = Object.assign({}, nc);
+        ncParaNotif.gestiones = (nc.gestiones||[]).filter(function(g, gi) {
+          var emailNuevo = (g.responsable_email_real||g.responsable_email||'').toLowerCase();
+          if (!emailNuevo || !emailNuevo.includes('@')) return false;
+          var gAnterior = casoAnterior.gestiones && casoAnterior.gestiones[gi];
+          var emailAnterior = gAnterior ? (gAnterior.responsable_email_real||gAnterior.responsable_email||'').toLowerCase() : '';
+          return emailNuevo !== emailAnterior;
+        });
+        if (ncParaNotif.gestiones.length > 0) {
+          sendNotificationEmails(ncParaNotif);
+        }
         notifEnviada = true;
       }
       // Si cambió la criticidad a Crítica → enviar alerta (solo si no se envió ya)
