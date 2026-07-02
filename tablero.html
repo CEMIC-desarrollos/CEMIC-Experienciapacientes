@@ -4703,7 +4703,7 @@ var EMAILJS_TEMPLATE_RECUPERAR = 'template_f981g9v';  // recuperación de contra
 var EMAILJS_TEMPLATE_CRITICO  = 'template_cw7ifbb';   // notif crítico
 var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación inicial al presentante (al cargar el caso)
 var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// copia informativa a terceros (CC)
-var EMAILJS_TEMPLATE_RESP_PRESENTANTE = 'template_v0xc46f'; // respuesta del equipo al presentante (crear en EmailJS y pegar el ID)
+var EMAILJS_TEMPLATE_RESP_PRESENTANTE = 'PEGAR_ID_NUEVO_TEMPLATE_AQUI'; // respuesta del equipo al presentante (crear en EmailJS y pegar el ID)
 var emailjsReady = false;
 try {
   if (EMAILJS_PUBLIC_KEY !== 'TU_PUBLIC_KEY') {
@@ -4770,7 +4770,7 @@ function sendRespuestaPresentante(nc) {
   if (!nc.obs_admin || !nc.obs_admin.trim()) return;
   // Aplica para todas las criticidades que correspondan
   if (!emailjsReady) return;
-  if (!EMAILJS_TEMPLATE_RESP_PRESENTANTE || EMAILJS_TEMPLATE_RESP_PRESENTANTE === 'template_v0xc46f') {
+  if (!EMAILJS_TEMPLATE_RESP_PRESENTANTE || EMAILJS_TEMPLATE_RESP_PRESENTANTE === 'PEGAR_ID_NUEVO_TEMPLATE_AQUI') {
     console.warn('[EMAILJS] Falta configurar EMAILJS_TEMPLATE_RESP_PRESENTANTE — no se envía respuesta al presentante');
     return;
   }
