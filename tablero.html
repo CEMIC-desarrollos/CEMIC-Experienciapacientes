@@ -4770,7 +4770,7 @@ function sendRespuestaPresentante(nc) {
   if (!nc.obs_admin || !nc.obs_admin.trim()) return;
   // Aplica para todas las criticidades que correspondan
   if (!emailjsReady) return;
-  if (!EMAILJS_TEMPLATE_RESP_PRESENTANTE || EMAILJS_TEMPLATE_RESP_PRESENTANTE === 'PEGAR_ID_NUEVO_TEMPLATE_AQUI') {
+  if (!EMAILJS_TEMPLATE_RESP_PRESENTANTE || EMAILJS_TEMPLATE_RESP_PRESENTANTE === 'template_v0xc46f') {
     console.warn('[EMAILJS] Falta configurar EMAILJS_TEMPLATE_RESP_PRESENTANTE — no se envía respuesta al presentante');
     return;
   }
