@@ -4581,6 +4581,18 @@ function saveCase() {
     adjunto_tipo:   adjuntosData.length > 0 ? adjuntosData[0].tipo   : (editingId ? (data.find(x=>x.id===editingId)||{}).adjunto_tipo   : null) || null,
   };
   const isNew = !editingId;
+  // Capturar copias del DOM (aplica tanto para caso nuevo como para edición de uno existente)
+  var _copiasPorGestionEdit = gestionesData.map(function(g, gi) {
+    var chk = document.getElementById('g-copia-chk-'+gi);
+    if (chk && chk.checked) {
+      var emails = getGestionCopiaEmails(gi);
+      return emails.length > 0 ? { gi: gi, emails: emails } : null;
+    }
+    return null;
+  }).filter(Boolean);
+  _copiasPorGestionEdit.forEach(function(item) {
+    if (nc.gestiones && nc.gestiones[item.gi]) nc.gestiones[item.gi].copia_emails = item.emails;
+  });
   if (editingId) {
     const idx=data.findIndex(x=>x.id===editingId);
     if(idx!==-1) {
@@ -4608,6 +4620,10 @@ function saveCase() {
         data[idx].estado = nc.responsable_email ? 'Derivado a Responsable' : 'Pendiente';
       }
       saveCaso(data[idx]);
+      // Enviar copias de gestiones agregadas/marcadas durante la edición
+      _copiasPorGestionEdit.forEach(function(item) {
+        sendCopiaResumen(data[idx], item.emails, item.gi);
+      });
       // Trazabilidad: derivado a responsable
       if (nc.responsable_email && nc.responsable_email.trim()) {
         // Log gestiones en trazabilidad
