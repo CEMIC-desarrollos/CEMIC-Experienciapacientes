@@ -2197,6 +2197,13 @@ function renderSACasos() {
   var cont = document.getElementById('sa-tab-casos');
   if (!cont) return;
 
+  // Preservar foco y cursor: esta función reconstruye todo el contenedor (incluidos los
+  // inputs de filtro), lo que normalmente le haría perder el foco al campo en el que se está escribiendo.
+  var _activeEl = document.activeElement;
+  var _activeId = (_activeEl && cont.contains(_activeEl)) ? _activeEl.id : null;
+  var _selStart = (_activeId && typeof _activeEl.selectionStart === 'number') ? _activeEl.selectionStart : null;
+  var _selEnd   = (_activeId && typeof _activeEl.selectionEnd === 'number') ? _activeEl.selectionEnd : null;
+
   // Leer filtros
   var fBuscar = ((document.getElementById('sa-casos-buscar')||{}).value||'').toLowerCase();
   var fSede   = (document.getElementById('sa-casos-sede')||{}).value||'';
@@ -2313,6 +2320,17 @@ function renderSACasos() {
       '<div style="background:#f0fdf4;border-radius:10px 10px 0 0;padding:8px 16px;font-size:0.78rem;font-weight:700;color:#065f46;border:1px solid #bbf7d0;border-bottom:none">⚙️ Casos en Gestión <span style="background:#065f46;color:white;border-radius:20px;padding:1px 8px;font-size:0.72rem;margin-left:6px">'+saGestion.length+'</span></div><table style="width:100%;border-collapse:collapse;font-size:0.82rem"><thead><tr style="background:var(--green-light)">'+thSA+saGestion.map(saRowFn).join('')+'</tbody></table>' : '<p style="text-align:center;color:var(--text-muted);padding:24px">No hay casos en gestión</p>';
     return sNuevos + sGestion;
     })();
+
+  // Restaurar foco y cursor en el campo que se estaba editando
+  if (_activeId) {
+    var _elRestore = document.getElementById(_activeId);
+    if (_elRestore) {
+      _elRestore.focus();
+      if (_selStart !== null && typeof _elRestore.setSelectionRange === 'function') {
+        try { _elRestore.setSelectionRange(_selStart, _selEnd); } catch(e) {}
+      }
+    }
+  }
 }
 
 function renderMenus() {
