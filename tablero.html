@@ -644,6 +644,14 @@
           <option value="48hs">⚠️ Próximos a vencer (48hs)</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label>Origen</label>
+        <select id="t-filter-origen" onchange="syncFilters()">
+          <option value="">Todos los orígenes</option>
+          <option value="formulario_publico">📱 QR / Formulario público</option>
+          <option value="admin">🖥️ Admin / Gestor</option>
+        </select>
+      </div>
       <div class="filter-group" style="justify-content:flex-end">
         <label>&nbsp;</label>
         <button class="btn btn-ghost" onclick="clearFilters()" style="width:100%">✕ Limpiar filtros</button>
@@ -828,6 +836,14 @@
           <option value="">Todos</option>
           <option value="vencido">⛔ Vencidos</option>
           <option value="48hs">⚠️ Próximos a vencer (48hs)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Origen</label>
+        <select id="filter-origen" onchange="renderTabla()">
+          <option value="">Todos los orígenes</option>
+          <option value="formulario_publico">📱 QR / Formulario público</option>
+          <option value="admin">🖥️ Admin / Gestor</option>
         </select>
       </div>
       <div class="filter-group" style="justify-content:flex-end">
@@ -2274,7 +2290,7 @@ function renderSACasos() {
     (function(){
     var saRowFn = function(d) {
       return '<tr style="border-bottom:1px solid var(--border)">' +
-        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
+        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
         '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
@@ -3180,6 +3196,14 @@ function getBadgeClass(tipo) {
   return 'badge badge-'+(m[tipo]||'quejareclamo');
 }
 function isVencido(fecha,estado) { return !(!fecha||estado==='Cerrado') && new Date(fecha)<new Date(); }
+function origenBadge(d) {
+  var esQR = d && d.origen === 'formulario_publico';
+  if (esQR) {
+    return ' <span title="Cargado por el paciente vía QR / formulario público" style="display:inline-block;background:#e0f2fe;color:#075985;border-radius:5px;padding:1px 5px;font-size:0.62rem;font-weight:700;vertical-align:middle;margin-left:3px">📱 QR</span>';
+  }
+  var gestorTxt = (d && (d.gestor_nombre || d.gestor_email)) ? ' — cargado por ' + (d.gestor_nombre || d.gestor_email) : '';
+  return ' <span title="Cargado por Admin/Gestor'+gestorTxt+'" style="display:inline-block;background:#f3f0ff;color:#5b21b6;border-radius:5px;padding:1px 5px;font-size:0.62rem;font-weight:700;vertical-align:middle;margin-left:3px">🖥️ Admin</span>';
+}
 function isProximoVencer(fecha, estado) {
   if (!fecha || estado === 'Cerrado') return false;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -3195,7 +3219,7 @@ function getColorStatus(s) {
 }
 
 function getActiveFilters() {
-  return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
+  return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento','filter-origen']
     .filter(id => document.getElementById(id) && document.getElementById(id).value.trim() !== '').length;
 }
 
@@ -3228,6 +3252,7 @@ function renderTabla() {
   const fDesde  = _g('filter-fecha-desde');
   const fHasta  = _g('filter-fecha-hasta');
   const fVenc   = _g('filter-vencimiento');
+  const fOrigen = _g('filter-origen');
   // Asegurar que tabla-normal sea visible
   var tn = document.getElementById('tabla-normal');
   if (tn) tn.style.display = 'block';
@@ -3253,7 +3278,8 @@ function renderTabla() {
       && (!fCrit   || d.criticidad === fCrit)
       && (!fMotivo || d.motivo === fMotivo)
       && (!fDesde  || (d.fecha && d.fecha >= fDesde))
-      && (!fHasta  || (d.fecha && d.fecha <= fHasta));
+      && (!fHasta  || (d.fecha && d.fecha <= fHasta))
+      && (!fOrigen || (fOrigen === 'formulario_publico' ? d.origen === 'formulario_publico' : d.origen !== 'formulario_publico'));
   }).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id);
 
   // Separar en dos grupos
@@ -3325,7 +3351,7 @@ function renderTabla() {
     const respEsc = (d.respuesta||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     const accionEsc = (d.accion||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     return `<tr class="caso-row" onclick="toggleDetalle(${d.id})" style="cursor:pointer">
-      <td style="font-size:0.78rem"><strong>#${d.id}</strong></td>
+      <td style="font-size:0.78rem"><strong>#${d.id}</strong>${origenBadge(d)}</td>
       <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}</td>
       <td style="font-size:0.74rem"><strong>${d.sede||'—'}</strong><br><span style="color:var(--text-muted);font-size:0.68rem">${d.servicio||''}</span></td>
       <td><span class="${getBadgeClass(d.tipo)}" style="font-size:0.65rem;padding:2px 5px">${(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')}</span></td>
@@ -3873,7 +3899,8 @@ function syncFilters() {
     ['t-filter-motivo','filter-motivo'],
     ['t-filter-fecha-desde','filter-fecha-desde'],
     ['t-filter-fecha-hasta','filter-fecha-hasta'],
-    ['t-filter-vencimiento','filter-vencimiento']
+    ['t-filter-vencimiento','filter-vencimiento'],
+    ['t-filter-origen','filter-origen']
   ];
   pairs.forEach(function(p) {
     var src = document.getElementById(p[0]);
@@ -3896,7 +3923,8 @@ function syncFiltersReverse() {
     ['filter-motivo','t-filter-motivo'],
     ['filter-fecha-desde','t-filter-fecha-desde'],
     ['filter-fecha-hasta','t-filter-fecha-hasta'],
-    ['filter-vencimiento','t-filter-vencimiento']
+    ['filter-vencimiento','t-filter-vencimiento'],
+    ['filter-origen','t-filter-origen']
   ];
   pairs.forEach(function(p) {
     var src = document.getElementById(p[0]);
@@ -3907,9 +3935,9 @@ function syncFiltersReverse() {
 
 // ─── FILTROS ───────────────────────────────────────────────
 function clearFilters() {
-  ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
+  ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento','filter-origen']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-  ['t-search-input','t-filter-sede','t-filter-servicio','t-filter-tipo','t-filter-estado','t-filter-criticidad','t-filter-motivo','t-filter-fecha-desde','t-filter-fecha-hasta','t-filter-vencimiento']
+  ['t-search-input','t-filter-sede','t-filter-servicio','t-filter-tipo','t-filter-estado','t-filter-criticidad','t-filter-motivo','t-filter-fecha-desde','t-filter-fecha-hasta','t-filter-vencimiento','t-filter-origen']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   renderTabla(); updateCharts();
 }
@@ -4500,7 +4528,11 @@ function saveCase() {
   msgEl.style.display = 'none';
   var _gestiones = getGestionesFromForm();
   var _g0 = _gestiones[0] || {};
+  var _casoExistente = editingId ? data.find(x => x.id === editingId) : null;
   const nc = {
+    // Origen del caso: si ya tenía un origen (ej. 'formulario_publico' vía QR), se conserva.
+    // Si es un caso nuevo cargado desde este panel, queda marcado como 'admin'.
+    origen: (_casoExistente && _casoExistente.origen) || 'admin',
     fecha:document.getElementById('f-fecha').value, hora:document.getElementById('f-hora').value,
     sede: _g0.sede || document.getElementById('f-sede').value || '',
     servicio: _g0.sector || getServicioAdmin() || '',
