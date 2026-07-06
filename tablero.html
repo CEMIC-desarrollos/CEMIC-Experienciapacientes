@@ -1660,6 +1660,15 @@ function syncTipoMotivoReclamo() {
 
 
 
+// Agrega una línea con fecha/hora al historial de "Resumen de Gestión" del caso (bitácora automática)
+function appendResumenGestion(nc, texto) {
+  if (!nc) return;
+  var ahora = new Date();
+  var fechaStr = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  var linea = '• [' + fechaStr + '] ' + texto;
+  nc.resumen_gestiones = nc.resumen_gestiones ? (nc.resumen_gestiones + '\n' + linea) : linea;
+}
+
 function guardarResumenGestiones() {
   var val = document.getElementById('f-resumen-gestiones').value;
   var msg = document.getElementById('resumen-saved-msg');
@@ -2781,6 +2790,9 @@ function renderUserView() {
         </div>` : ''}
         <div class="case-relato-label">Relato del hecho</div>
         <div class="case-relato">${d.relato||'Sin relato registrado.'}</div>
+        ${d.resumen_gestiones ? `
+        <div class="case-relato-label" style="margin-top:10px">🗒️ Resumen de Gestión</div>
+        <div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;white-space:pre-line;font-size:0.78rem;line-height:1.6">${d.resumen_gestiones}</div>` : ''}
         ` + (d.adjunto_base64 ? `<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="` + d.adjunto_base64 + `" download="` + (d.adjunto_nombre||'adjunto') + `" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ` + (d.adjunto_nombre||'Descargar archivo') + `</a></div>` : '') + `
         <div class="case-respuesta">
           ${(d.tipo === 'Felicitación' || d.tipo === 'Sugerencia') ? `
@@ -2870,6 +2882,14 @@ function saveUserResp(id) {
     data[idx].estado_respuesta = nuevoEstado;
     if (respuesta.trim() || accion.trim()) {
       data[idx].estado = 'Respuesta del Responsable';
+    }
+    // Bitácora automática de "Resumen de Gestión"
+    var _nombreResp = (currentUser.nombre_solo||currentUser.nombre||currentUser.email||'Responsable');
+    var _partesLog = [];
+    if (respuesta.trim()) _partesLog.push('respuesta');
+    if (accion.trim())   _partesLog.push('acción de mejora');
+    if (_partesLog.length) {
+      appendResumenGestion(data[idx], _nombreResp + ' cargó su ' + _partesLog.join(' y ') + '.');
     }
     // Actualizar badge de estado
     const badge = document.getElementById(`badge-estado-resp-${id}`);
@@ -3644,6 +3664,7 @@ function enviarRespuestaPresentanteManual() {
       const idx = data.findIndex(x => x.id === editingId);
       if (idx !== -1) {
         data[idx].estado = 'Cerrado';
+        appendResumenGestion(data[idx], 'Respuesta enviada al paciente por ' + (currentUser.nombre||currentUser.email||'Equipo de Experiencia del Paciente') + '. Caso cerrado.');
         saveCaso(data[idx]);
       }
     }
@@ -4638,6 +4659,16 @@ function saveCase() {
         data[idx].estado = nc.responsable_email ? 'Derivado a Responsable' : 'Pendiente';
       }
       saveCaso(data[idx]);
+      // Bitácora automática de "Resumen de Gestión"
+      var _gestorNombreLog = currentUser.nombre || currentUser.email || 'Gestor';
+      if (nc.responsable_email && nc.responsable_email.trim() && (casoAnterior.responsable_email||'') !== nc.responsable_email) {
+        appendResumenGestion(data[idx], 'Caso derivado por ' + _gestorNombreLog + ' a ' + (nc.responsable||nc.responsable_email) + '.');
+        casosRef.doc(String(data[idx].id)).update({ resumen_gestiones: data[idx].resumen_gestiones }).catch(function(e){ console.warn('No se pudo persistir resumen_gestiones:', e); });
+      }
+      if (nc.estado === 'Cerrado' && casoAnterior.estado !== 'Cerrado') {
+        appendResumenGestion(data[idx], 'Caso cerrado por ' + _gestorNombreLog + '.');
+        casosRef.doc(String(data[idx].id)).update({ resumen_gestiones: data[idx].resumen_gestiones }).catch(function(e){ console.warn('No se pudo persistir resumen_gestiones:', e); });
+      }
       // Enviar copias de gestiones agregadas/marcadas durante la edición
       _copiasPorGestionEdit.forEach(function(item) {
         sendCopiaResumen(data[idx], item.emails, item.gi);
@@ -4719,6 +4750,10 @@ function saveCase() {
       var maxId = 0;
       snap.forEach(function(doc){ maxId = doc.data().id || 0; });
       nc.id = maxId + 1;
+      // Bitácora automática de "Resumen de Gestión"
+      if (nc.responsable_email && nc.responsable_email.trim()) {
+        appendResumenGestion(nc, 'Caso derivado por ' + (currentUser.nombre||currentUser.email||'Gestor') + ' a ' + (nc.responsable||nc.responsable_email) + '.');
+      }
       data.push(nc);
       saveCaso(nc);
       var gestDetalleNuevo = (nc.gestiones||[]).map(function(g,gi){
