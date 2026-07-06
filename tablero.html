@@ -644,14 +644,6 @@
           <option value="48hs">⚠️ Próximos a vencer (48hs)</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label>Origen</label>
-        <select id="t-filter-origen" onchange="syncFilters()">
-          <option value="">Todos los orígenes</option>
-          <option value="formulario_publico">📱 QR / Formulario público</option>
-          <option value="admin">🖥️ Admin / Gestor</option>
-        </select>
-      </div>
       <div class="filter-group" style="justify-content:flex-end">
         <label>&nbsp;</label>
         <button class="btn btn-ghost" onclick="clearFilters()" style="width:100%">✕ Limpiar filtros</button>
@@ -836,14 +828,6 @@
           <option value="">Todos</option>
           <option value="vencido">⛔ Vencidos</option>
           <option value="48hs">⚠️ Próximos a vencer (48hs)</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Origen</label>
-        <select id="filter-origen" onchange="renderTabla()">
-          <option value="">Todos los orígenes</option>
-          <option value="formulario_publico">📱 QR / Formulario público</option>
-          <option value="admin">🖥️ Admin / Gestor</option>
         </select>
       </div>
       <div class="filter-group" style="justify-content:flex-end">
@@ -1161,7 +1145,6 @@
               <option>Turnos</option>
               <option>Seguridad/Vigilancia</option>
               <option>Bioingeniería</option>
-              <option>Reclamo Resultado</option>
               <option>General/Otros</option>
               <option>Prepago</option>
             </select>
@@ -1347,8 +1330,7 @@ function loadData(callback) {
       var d = doc.data();
       // Migrar respuesta/accion legacy al array gestiones si las gestiones no la tienen
       if (d.gestiones && d.gestiones.length > 0) {
-        if (d.respuesta && !d.gestiones[0].respuesta) d.gestiones[0].respuesta = d.respuesta;
-        if (d.accion && !d.gestiones[0].accion) d.gestiones[0].accion = d.accion;
+        // No copiar d.respuesta a gestiones[0] — cada gestión tiene su propia respuesta
       }
       // Si está Cerrado sin fecha_cierre, asignar la fecha de hoy y persistir en Firebase
       if (d.estado === 'Cerrado' && !d.fecha_cierre) {
@@ -1377,8 +1359,7 @@ function startRealtimeListener() {
     snapshot.forEach(function(doc) {
       var d = doc.data();
       if (d.gestiones && d.gestiones.length > 0) {
-        if (d.respuesta && !d.gestiones[0].respuesta) d.gestiones[0].respuesta = d.respuesta;
-        if (d.accion && !d.gestiones[0].accion) d.gestiones[0].accion = d.accion;
+        // No copiar d.respuesta a gestiones[0] — cada gestión tiene su propia respuesta
       }
       // Si está Cerrado sin fecha_cierre, asignar la fecha de hoy y persistir en Firebase
       if (d.estado === 'Cerrado' && !d.fecha_cierre) {
@@ -1430,7 +1411,7 @@ function preloadResponsables() {
 // ─── GESTIONES MÚLTIPLES ───────────────────────────────────
 var gestionesData = [];
 var MOTIVOS_GESTION = ['Demora','Maltrato','Cancelación','Otro'];
-var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo','General/Otros'];
+var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'];
 var SECTORES_GESTION = ['Guardia','Internación','Facturación','Enfermería','Cirugía','Clínica Médica','Pediatría','Obstetricia','Admisión','Farmacia','Laboratorio','Diagnóstico por Imágenes','Otro'];
 var CRITICIDADES_GESTION = ['No procedente','Baja','Media','Alta','Evento Crítico'];
 
@@ -1453,7 +1434,7 @@ function eliminarGestion(idx) {
 function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val||''; }
 
 var SERVICIOS_MEDICOS = ['Anatomía Patológica','Cirugía','Clínica Médica y Especialidades Clínicas','Emergencias','Gastroenterología','Ginecología y Obstetricia','Hemodinamia','Hospital de Día Oncológico','Imágenes','Neonatología','Pediatría','Radioterapia','Rehabilitación (Terapia Física, T. Ocupacional, Fono)','Terapia Intensiva','Traumatología','Unidad Coronaria','UTI Pediátrica'];
-var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Hemoterapia", "Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "Hemoterapia", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Hemoterapia", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "Hemoterapia", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Hemoterapia", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Hemoterapia", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Hemoterapia", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "Hemoterapia", "General / Otros"], "General/Otros": ["General / Otros"]};
+var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"]};
 
 function renderGestiones() {
   var cont = document.getElementById('gestiones-container');
@@ -1618,8 +1599,8 @@ function setVencimientoGestion(idx) {
 }
 
 // ─── TIPO Y MOTIVO RECLAMO ────────────────────────────────────
-var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitado", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Portal Web", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Canal no responde", "Turno mal dado", "Información incorrecta"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/Hurto/Objeto perdido"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Reclamo Resultado": ["Demora de entrega", "Informe incorrecto"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamos administrativos", "Óptica"]};
-var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "Reclamo Resultado", "General/Otros", "Prepago"];
+var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas", "Demora Técnica"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Caída del Portal de Turnos", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Turno prolongado/accesibilidad", "Turno Cancelado", "Calidad de atención del operador", "Portal web", "Canal no responde", "Turno mal dado"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/hurto"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta"]};
+var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "General/Otros", "Prepago"];
 
 function onTipoReclamoChange() {
   var tipo = document.getElementById('f-tipo-reclamo').value;
@@ -1659,15 +1640,6 @@ function syncTipoMotivoReclamo() {
 }
 
 
-
-// Agrega una línea con fecha/hora al historial de "Resumen de Gestión" del caso (bitácora automática)
-function appendResumenGestion(nc, texto) {
-  if (!nc) return;
-  var ahora = new Date();
-  var fechaStr = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
-  var linea = '• [' + fechaStr + '] ' + texto;
-  nc.resumen_gestiones = nc.resumen_gestiones ? (nc.resumen_gestiones + '\n' + linea) : linea;
-}
 
 function guardarResumenGestiones() {
   var val = document.getElementById('f-resumen-gestiones').value;
@@ -2206,13 +2178,6 @@ function renderSACasos() {
   var cont = document.getElementById('sa-tab-casos');
   if (!cont) return;
 
-  // Preservar foco y cursor: esta función reconstruye todo el contenedor (incluidos los
-  // inputs de filtro), lo que normalmente le haría perder el foco al campo en el que se está escribiendo.
-  var _activeEl = document.activeElement;
-  var _activeId = (_activeEl && cont.contains(_activeEl)) ? _activeEl.id : null;
-  var _selStart = (_activeId && typeof _activeEl.selectionStart === 'number') ? _activeEl.selectionStart : null;
-  var _selEnd   = (_activeId && typeof _activeEl.selectionEnd === 'number') ? _activeEl.selectionEnd : null;
-
   // Leer filtros
   var fBuscar = ((document.getElementById('sa-casos-buscar')||{}).value||'').toLowerCase();
   var fSede   = (document.getElementById('sa-casos-sede')||{}).value||'';
@@ -2306,7 +2271,7 @@ function renderSACasos() {
     (function(){
     var saRowFn = function(d) {
       return '<tr style="border-bottom:1px solid var(--border)">' +
-        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
+        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
         '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
@@ -2329,17 +2294,6 @@ function renderSACasos() {
       '<div style="background:#f0fdf4;border-radius:10px 10px 0 0;padding:8px 16px;font-size:0.78rem;font-weight:700;color:#065f46;border:1px solid #bbf7d0;border-bottom:none">⚙️ Casos en Gestión <span style="background:#065f46;color:white;border-radius:20px;padding:1px 8px;font-size:0.72rem;margin-left:6px">'+saGestion.length+'</span></div><table style="width:100%;border-collapse:collapse;font-size:0.82rem"><thead><tr style="background:var(--green-light)">'+thSA+saGestion.map(saRowFn).join('')+'</tbody></table>' : '<p style="text-align:center;color:var(--text-muted);padding:24px">No hay casos en gestión</p>';
     return sNuevos + sGestion;
     })();
-
-  // Restaurar foco y cursor en el campo que se estaba editando
-  if (_activeId) {
-    var _elRestore = document.getElementById(_activeId);
-    if (_elRestore) {
-      _elRestore.focus();
-      if (_selStart !== null && typeof _elRestore.setSelectionRange === 'function') {
-        try { _elRestore.setSelectionRange(_selStart, _selEnd); } catch(e) {}
-      }
-    }
-  }
 }
 
 function renderMenus() {
@@ -2790,9 +2744,6 @@ function renderUserView() {
         </div>` : ''}
         <div class="case-relato-label">Relato del hecho</div>
         <div class="case-relato">${d.relato||'Sin relato registrado.'}</div>
-        ${d.resumen_gestiones ? `
-        <div class="case-relato-label" style="margin-top:10px">🗒️ Resumen de Gestión</div>
-        <div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#334155;white-space:pre-line;font-size:0.78rem;line-height:1.6">${d.resumen_gestiones}</div>` : ''}
         ` + (d.adjunto_base64 ? `<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="` + d.adjunto_base64 + `" download="` + (d.adjunto_nombre||'adjunto') + `" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ` + (d.adjunto_nombre||'Descargar archivo') + `</a></div>` : '') + `
         <div class="case-respuesta">
           ${(d.tipo === 'Felicitación' || d.tipo === 'Sugerencia') ? `
@@ -2882,14 +2833,6 @@ function saveUserResp(id) {
     data[idx].estado_respuesta = nuevoEstado;
     if (respuesta.trim() || accion.trim()) {
       data[idx].estado = 'Respuesta del Responsable';
-    }
-    // Bitácora automática de "Resumen de Gestión"
-    var _nombreResp = (currentUser.nombre_solo||currentUser.nombre||currentUser.email||'Responsable');
-    var _partesLog = [];
-    if (respuesta.trim()) _partesLog.push('respuesta');
-    if (accion.trim())   _partesLog.push('acción de mejora');
-    if (_partesLog.length) {
-      appendResumenGestion(data[idx], _nombreResp + ' cargó su ' + _partesLog.join(' y ') + '.');
     }
     // Actualizar badge de estado
     const badge = document.getElementById(`badge-estado-resp-${id}`);
@@ -3234,14 +3177,6 @@ function getBadgeClass(tipo) {
   return 'badge badge-'+(m[tipo]||'quejareclamo');
 }
 function isVencido(fecha,estado) { return !(!fecha||estado==='Cerrado') && new Date(fecha)<new Date(); }
-function origenBadge(d) {
-  var esQR = d && d.origen === 'formulario_publico';
-  if (esQR) {
-    return ' <span title="Cargado por el paciente vía QR / formulario público" style="display:inline-block;background:#e0f2fe;color:#075985;border-radius:5px;padding:1px 5px;font-size:0.62rem;font-weight:700;vertical-align:middle;margin-left:3px">📱 QR</span>';
-  }
-  var gestorTxt = (d && (d.gestor_nombre || d.gestor_email)) ? ' — cargado por ' + (d.gestor_nombre || d.gestor_email) : '';
-  return ' <span title="Cargado por Admin/Gestor'+gestorTxt+'" style="display:inline-block;background:#f3f0ff;color:#5b21b6;border-radius:5px;padding:1px 5px;font-size:0.62rem;font-weight:700;vertical-align:middle;margin-left:3px">🖥️ Admin</span>';
-}
 function isProximoVencer(fecha, estado) {
   if (!fecha || estado === 'Cerrado') return false;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -3257,7 +3192,7 @@ function getColorStatus(s) {
 }
 
 function getActiveFilters() {
-  return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento','filter-origen']
+  return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
     .filter(id => document.getElementById(id) && document.getElementById(id).value.trim() !== '').length;
 }
 
@@ -3290,7 +3225,6 @@ function renderTabla() {
   const fDesde  = _g('filter-fecha-desde');
   const fHasta  = _g('filter-fecha-hasta');
   const fVenc   = _g('filter-vencimiento');
-  const fOrigen = _g('filter-origen');
   // Asegurar que tabla-normal sea visible
   var tn = document.getElementById('tabla-normal');
   if (tn) tn.style.display = 'block';
@@ -3316,8 +3250,7 @@ function renderTabla() {
       && (!fCrit   || d.criticidad === fCrit)
       && (!fMotivo || d.motivo === fMotivo)
       && (!fDesde  || (d.fecha && d.fecha >= fDesde))
-      && (!fHasta  || (d.fecha && d.fecha <= fHasta))
-      && (!fOrigen || (fOrigen === 'formulario_publico' ? d.origen === 'formulario_publico' : d.origen !== 'formulario_publico'));
+      && (!fHasta  || (d.fecha && d.fecha <= fHasta));
   }).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id);
 
   // Separar en dos grupos
@@ -3389,7 +3322,7 @@ function renderTabla() {
     const respEsc = (d.respuesta||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     const accionEsc = (d.accion||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     return `<tr class="caso-row" onclick="toggleDetalle(${d.id})" style="cursor:pointer">
-      <td style="font-size:0.78rem"><strong>#${d.id}</strong>${origenBadge(d)}</td>
+      <td style="font-size:0.78rem"><strong>#${d.id}</strong></td>
       <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}</td>
       <td style="font-size:0.74rem"><strong>${d.sede||'—'}</strong><br><span style="color:var(--text-muted);font-size:0.68rem">${d.servicio||''}</span></td>
       <td><span class="${getBadgeClass(d.tipo)}" style="font-size:0.65rem;padding:2px 5px">${(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')}</span></td>
@@ -3632,7 +3565,7 @@ function enviarRespuestaPresentanteManual() {
   var sede   = caso ? caso.sede   : document.getElementById('f-sede').value;
   if (!emailjsReady) { alert('EmailJS no está listo.'); return; }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESP_PRESENTANTE, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA, {
     to_email:  mail,
     to_name:   nombre || 'Presentante',
     caso_id:   editingId || '—',
@@ -3664,7 +3597,6 @@ function enviarRespuestaPresentanteManual() {
       const idx = data.findIndex(x => x.id === editingId);
       if (idx !== -1) {
         data[idx].estado = 'Cerrado';
-        appendResumenGestion(data[idx], 'Respuesta enviada al paciente por ' + (currentUser.nombre||currentUser.email||'Equipo de Experiencia del Paciente') + '. Caso cerrado.');
         saveCaso(data[idx]);
       }
     }
@@ -3938,8 +3870,7 @@ function syncFilters() {
     ['t-filter-motivo','filter-motivo'],
     ['t-filter-fecha-desde','filter-fecha-desde'],
     ['t-filter-fecha-hasta','filter-fecha-hasta'],
-    ['t-filter-vencimiento','filter-vencimiento'],
-    ['t-filter-origen','filter-origen']
+    ['t-filter-vencimiento','filter-vencimiento']
   ];
   pairs.forEach(function(p) {
     var src = document.getElementById(p[0]);
@@ -3962,8 +3893,7 @@ function syncFiltersReverse() {
     ['filter-motivo','t-filter-motivo'],
     ['filter-fecha-desde','t-filter-fecha-desde'],
     ['filter-fecha-hasta','t-filter-fecha-hasta'],
-    ['filter-vencimiento','t-filter-vencimiento'],
-    ['filter-origen','t-filter-origen']
+    ['filter-vencimiento','t-filter-vencimiento']
   ];
   pairs.forEach(function(p) {
     var src = document.getElementById(p[0]);
@@ -3974,9 +3904,9 @@ function syncFiltersReverse() {
 
 // ─── FILTROS ───────────────────────────────────────────────
 function clearFilters() {
-  ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento','filter-origen']
+  ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
-  ['t-search-input','t-filter-sede','t-filter-servicio','t-filter-tipo','t-filter-estado','t-filter-criticidad','t-filter-motivo','t-filter-fecha-desde','t-filter-fecha-hasta','t-filter-vencimiento','t-filter-origen']
+  ['t-search-input','t-filter-sede','t-filter-servicio','t-filter-tipo','t-filter-estado','t-filter-criticidad','t-filter-motivo','t-filter-fecha-desde','t-filter-fecha-hasta','t-filter-vencimiento']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
   renderTabla(); updateCharts();
 }
@@ -4567,11 +4497,7 @@ function saveCase() {
   msgEl.style.display = 'none';
   var _gestiones = getGestionesFromForm();
   var _g0 = _gestiones[0] || {};
-  var _casoExistente = editingId ? data.find(x => x.id === editingId) : null;
   const nc = {
-    // Origen del caso: si ya tenía un origen (ej. 'formulario_publico' vía QR), se conserva.
-    // Si es un caso nuevo cargado desde este panel, queda marcado como 'admin'.
-    origen: (_casoExistente && _casoExistente.origen) || 'admin',
     fecha:document.getElementById('f-fecha').value, hora:document.getElementById('f-hora').value,
     sede: _g0.sede || document.getElementById('f-sede').value || '',
     servicio: _g0.sector || getServicioAdmin() || '',
@@ -4620,18 +4546,6 @@ function saveCase() {
     adjunto_tipo:   adjuntosData.length > 0 ? adjuntosData[0].tipo   : (editingId ? (data.find(x=>x.id===editingId)||{}).adjunto_tipo   : null) || null,
   };
   const isNew = !editingId;
-  // Capturar copias del DOM (aplica tanto para caso nuevo como para edición de uno existente)
-  var _copiasPorGestionEdit = gestionesData.map(function(g, gi) {
-    var chk = document.getElementById('g-copia-chk-'+gi);
-    if (chk && chk.checked) {
-      var emails = getGestionCopiaEmails(gi);
-      return emails.length > 0 ? { gi: gi, emails: emails } : null;
-    }
-    return null;
-  }).filter(Boolean);
-  _copiasPorGestionEdit.forEach(function(item) {
-    if (nc.gestiones && nc.gestiones[item.gi]) nc.gestiones[item.gi].copia_emails = item.emails;
-  });
   if (editingId) {
     const idx=data.findIndex(x=>x.id===editingId);
     if(idx!==-1) {
@@ -4659,20 +4573,6 @@ function saveCase() {
         data[idx].estado = nc.responsable_email ? 'Derivado a Responsable' : 'Pendiente';
       }
       saveCaso(data[idx]);
-      // Bitácora automática de "Resumen de Gestión"
-      var _gestorNombreLog = currentUser.nombre || currentUser.email || 'Gestor';
-      if (nc.responsable_email && nc.responsable_email.trim() && (casoAnterior.responsable_email||'') !== nc.responsable_email) {
-        appendResumenGestion(data[idx], 'Caso derivado por ' + _gestorNombreLog + ' a ' + (nc.responsable||nc.responsable_email) + '.');
-        casosRef.doc(String(data[idx].id)).update({ resumen_gestiones: data[idx].resumen_gestiones }).catch(function(e){ console.warn('No se pudo persistir resumen_gestiones:', e); });
-      }
-      if (nc.estado === 'Cerrado' && casoAnterior.estado !== 'Cerrado') {
-        appendResumenGestion(data[idx], 'Caso cerrado por ' + _gestorNombreLog + '.');
-        casosRef.doc(String(data[idx].id)).update({ resumen_gestiones: data[idx].resumen_gestiones }).catch(function(e){ console.warn('No se pudo persistir resumen_gestiones:', e); });
-      }
-      // Enviar copias de gestiones agregadas/marcadas durante la edición
-      _copiasPorGestionEdit.forEach(function(item) {
-        sendCopiaResumen(data[idx], item.emails, item.gi);
-      });
       // Trazabilidad: derivado a responsable
       if (nc.responsable_email && nc.responsable_email.trim()) {
         // Log gestiones en trazabilidad
@@ -4750,10 +4650,6 @@ function saveCase() {
       var maxId = 0;
       snap.forEach(function(doc){ maxId = doc.data().id || 0; });
       nc.id = maxId + 1;
-      // Bitácora automática de "Resumen de Gestión"
-      if (nc.responsable_email && nc.responsable_email.trim()) {
-        appendResumenGestion(nc, 'Caso derivado por ' + (currentUser.nombre||currentUser.email||'Gestor') + ' a ' + (nc.responsable||nc.responsable_email) + '.');
-      }
       data.push(nc);
       saveCaso(nc);
       var gestDetalleNuevo = (nc.gestiones||[]).map(function(g,gi){
@@ -4802,9 +4698,8 @@ var EMAILJS_SERVICE_ID        = 'service_e44ykfo';
 var EMAILJS_TEMPLATE_ID       = 'template_6vwexef';   // notif responsable normal
 var EMAILJS_TEMPLATE_RECUPERAR = 'template_f981g9v';  // recuperación de contraseña
 var EMAILJS_TEMPLATE_CRITICO  = 'template_cw7ifbb';   // notif crítico
-var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación inicial al presentante (al cargar el caso)
-var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// copia informativa a terceros (CC)
-var EMAILJS_TEMPLATE_RESP_PRESENTANTE = 'template_v0xc46f'; // respuesta del equipo al presentante
+var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación al presentante ← reemplazar
+var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// respuesta al presentante ← reemplazar
 var emailjsReady = false;
 try {
   if (EMAILJS_PUBLIC_KEY !== 'TU_PUBLIC_KEY') {
@@ -4871,17 +4766,10 @@ function sendRespuestaPresentante(nc) {
   if (!nc.obs_admin || !nc.obs_admin.trim()) return;
   // Aplica para todas las criticidades que correspondan
   if (!emailjsReady) return;
-  if (!EMAILJS_TEMPLATE_RESP_PRESENTANTE || EMAILJS_TEMPLATE_RESP_PRESENTANTE === 'PEGAR_ID_NUEVO_TEMPLATE_AQUI') {
-    console.warn('[EMAILJS] Falta configurar EMAILJS_TEMPLATE_RESP_PRESENTANTE — no se envía respuesta al presentante');
-    return;
-  }
-  var sede = (nc.gestiones && nc.gestiones[0] && nc.gestiones[0].sede) || nc.sede || '';
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESP_PRESENTANTE, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
     to_email:  nc.mail_presentante.trim(),
     to_name:   ((nc.apellido||'') + ' ' + (nc.nombre||'')).trim() || 'Presentante',
-    caso_id:   'N° de Gestión: ' + nc.id,
-    caso_tipo: nc.tipo || '',
-    caso_sede: sede,
+    caso_id:   nc.id,
     message:   nc.obs_admin,
   }).catch(function(err){ console.warn('EmailJS respuesta error:', err); });
 }
