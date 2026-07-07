@@ -1145,9 +1145,10 @@
               <option>Turnos</option>
               <option>Seguridad/Vigilancia</option>
               <option>Bioingeniería</option>
+              <option>Reclamo Resultado</option>
               <option>General/Otros</option>
               <option>Prepago</option>
-            </select>
+</select>
           </div>
           <div class="form-group">
             <label>Motivo del Reclamo</label>
@@ -1411,8 +1412,8 @@ function preloadResponsables() {
 // ─── GESTIONES MÚLTIPLES ───────────────────────────────────
 var gestionesData = [];
 var MOTIVOS_GESTION = ['Demora','Maltrato','Cancelación','Otro'];
-var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'];
-var SECTORES_GESTION = ['Guardia','Internación','Facturación','Enfermería','Cirugía','Clínica Médica','Pediatría','Obstetricia','Admisión','Farmacia','Laboratorio','Diagnóstico por Imágenes','Otro'];
+var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo','General / Otros'];
+var SECTORES_GESTION = ['Guardia','Internación','Facturación','Enfermería','Quirófano','Clínica Médica','Pediatría','Obstetricia','Admisión','Farmacia','Laboratorio','Diagnóstico por Imágenes','Hemoterapia','Rehabilitación','Odontología','General / Otros'];
 var CRITICIDADES_GESTION = ['No procedente','Baja','Media','Alta','Evento Crítico'];
 
 function agregarGestion(data) {
@@ -1434,7 +1435,7 @@ function eliminarGestion(idx) {
 function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val||''; }
 
 var SERVICIOS_MEDICOS = ['Anatomía Patológica','Cirugía','Clínica Médica y Especialidades Clínicas','Emergencias','Gastroenterología','Ginecología y Obstetricia','Hemodinamia','Hospital de Día Oncológico','Imágenes','Neonatología','Pediatría','Radioterapia','Rehabilitación (Terapia Física, T. Ocupacional, Fono)','Terapia Intensiva','Traumatología','Unidad Coronaria','UTI Pediátrica'];
-var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"]};
+var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "Hospital de Mediodía", "Oncología", "Odontología", "Hemoterapia", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Quirófano Ambulatorio", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"], "General / Otros": ["General / Otros"]};
 
 function renderGestiones() {
   var cont = document.getElementById('gestiones-container');
@@ -1470,7 +1471,7 @@ function renderGestiones() {
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">' +
         '<div class="form-group"><label style="font-size:0.72rem">Sede <span class="req">*</span></label>' +
-          '<select id="g-sede-'+i+'" onchange="syncGestionField('+i+',\'sede\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"><option value="">Seleccioná...</option>'+sedesOpts+'</select></div>' +
+          '<select id="g-sede-'+i+'" onchange="syncGestionField('+i+',\'sede\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"><option value="">Seleccioná...</option><option>Saavedra</option><option>Pombo</option><option>Las Heras</option><option>Talcahuano</option><option>Ballester</option><option>San Isidro</option><option>Belgrano</option><option>Carabobo</option><option>General / Otros</option></select></div>' +
         '<div class="form-group"><label style="font-size:0.72rem">Sector / Servicio</label>' +
           '<select id="g-sector-'+i+'" onchange="syncGestionField('+i+',\'sector\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">' +
           (function(){
@@ -1599,8 +1600,8 @@ function setVencimientoGestion(idx) {
 }
 
 // ─── TIPO Y MOTIVO RECLAMO ────────────────────────────────────
-var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas", "Demora Técnica"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Caída del Portal de Turnos", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Turno prolongado/accesibilidad", "Turno Cancelado", "Calidad de atención del operador", "Portal web", "Canal no responde", "Turno mal dado"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/hurto"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta"]};
-var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "General/Otros", "Prepago"];
+var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitado", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Portal web", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Canal no responde", "Turno mal dado", "Información incorrecta"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/Hurto/Objeto perdido"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "Reclamo Resultado": ["Demora de entrega", "Informe incorrecto"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamos administrativos", "Óptica"]};
+var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "Reclamo Resultado", "General/Otros", "Prepago"];
 
 function onTipoReclamoChange() {
   var tipo = document.getElementById('f-tipo-reclamo').value;
@@ -2272,7 +2273,7 @@ function renderSACasos() {
     var saRowFn = function(d) {
       return '<tr style="border-bottom:1px solid var(--border)">' +
         '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
-        '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
+        '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'<br>'+(d.origen==='formulario_publico'?'<span title="QR" style="font-size:0.65rem;color:#7c3aed">📱 QR</span>':'<span style="font-size:0.65rem;color:#6b7280">🖥 Gestión</span>')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.apellido||'')+' '+(d.nombre||'')+'</td>' +
@@ -3323,7 +3324,7 @@ function renderTabla() {
     const accionEsc = (d.accion||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     return `<tr class="caso-row" onclick="toggleDetalle(${d.id})" style="cursor:pointer">
       <td style="font-size:0.78rem"><strong>#${d.id}</strong></td>
-      <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}</td>
+      <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}${d.origen==='formulario_publico'?'<br><span title="QR" style="font-size:0.62rem;color:#7c3aed">📱 QR</span>':'<br><span style="font-size:0.62rem;color:#9ca3af">🖥</span>'}</td>
       <td style="font-size:0.74rem"><strong>${d.sede||'—'}</strong><br><span style="color:var(--text-muted);font-size:0.68rem">${d.servicio||''}</span></td>
       <td><span class="${getBadgeClass(d.tipo)}" style="font-size:0.65rem;padding:2px 5px">${(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')}</span></td>
       <td style="font-size:0.76rem">${d.apellido||''}<br><span style="color:var(--text-muted);font-size:0.7rem">${d.nombre||''}</span></td>

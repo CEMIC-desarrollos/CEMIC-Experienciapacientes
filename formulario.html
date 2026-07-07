@@ -449,6 +449,7 @@
             <option>San Isidro</option>
             <option>Belgrano</option>
             <option>Carabobo</option>
+            <option>General / Otros</option>
           </select>
         </div>
         <div class="form-group">
@@ -712,7 +713,7 @@ function addBusinessDays(date, days) {
 }
 
 
-var SEDE_SECTORES_MAP_FORM = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"]};
+var SEDE_SECTORES_MAP_FORM = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "Hospital de Mediodía", "Oncología", "Odontología", "Hemoterapia", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Quirófano Ambulatorio", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"], "General / Otros": ["General / Otros"]};
 
 function updateSectoresFormulario() {
   var sede = document.getElementById('f-sede').value;
@@ -810,7 +811,7 @@ function enviarFormulario() {
           caso_sede: caso.sede,
           caso_crit: 'Por evaluar',
           paciente:  caso.apellido + ' ' + caso.nombre,
-          app_url:   'https://csalgado-ui.github.io/formulario-equipoexperienciapacientes/tablero_quejas.html',
+          app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
           message:   'Se recibio una nueva presentacion a traves del formulario publico de CEMIC. Por favor revise el sistema para asignar responsable y nivel de criticidad.'
         });
       } catch(e) {}
