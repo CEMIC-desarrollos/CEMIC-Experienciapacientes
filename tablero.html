@@ -3566,7 +3566,7 @@ function enviarRespuestaPresentanteManual() {
   var sede   = caso ? caso.sede   : document.getElementById('f-sede').value;
   if (!emailjsReady) { alert('EmailJS no está listo.'); return; }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
     to_email:  mail,
     to_name:   nombre || 'Presentante',
     caso_id:   editingId || '—',
