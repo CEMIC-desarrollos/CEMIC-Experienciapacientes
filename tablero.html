@@ -1701,27 +1701,38 @@ function updateModalEstado() {
     estadoEl.style.display = 'none';
   }
 
-  // Botón "Enviar a responsable": visible si hay gestión con email de responsable
+  // Botón "Enviar a responsable": visible si hay gestión con email de responsable (nuevo o editando)
   var btnResp = document.getElementById('btn-enviar-responsable');
   if (btnResp) {
     var tieneResponsable = gestionesData.some(function(g){
       return g.responsable_email && g.responsable_email.trim();
     });
-    btnResp.style.display = (tieneResponsable && editingId) ? 'inline-flex' : 'none';
+    btnResp.style.display = tieneResponsable ? 'inline-flex' : 'none';
   }
 
-  // Botón "Enviar respuesta al presentante": activo solo si hay respuesta del responsable
+  // Botón "Enviar respuesta al presentante": solo si hay respuesta del responsable Y caso existe
   var btnEnviar = document.getElementById('btn-enviar-respuesta');
   if (btnEnviar) {
     var hayRespuesta = gestionesData.some(function(g){
       return g.respuesta && g.respuesta.trim();
     });
-    btnEnviar.style.display = (hayRespuesta && editingId) ? 'inline-flex' : 'none';
+    var crit = document.getElementById('f-criticidad') ? document.getElementById('f-criticidad').value : '';
+    var esBajaMedia = (crit === 'Baja' || crit === 'Media');
+    btnEnviar.style.display = (hayRespuesta && editingId && esBajaMedia) ? 'inline-flex' : 'none';
   }
 }
 
 function enviarAResponsable() {
-  // Guarda el caso y envía notificación al responsable
+  // Verificar que haya responsable asignado
+  var tieneResp = gestionesData.some(function(g){
+    return g.responsable_email && g.responsable_email.trim();
+  });
+  if (!tieneResp) { alert('Primero asigná un responsable en la gestión.'); return; }
+  if (!confirm('¿Enviar notificación al responsable?')) return;
+  // Cambiar estado a "Derivado a Responsable"
+  var fEstado = document.getElementById('f-estado');
+  if (fEstado) fEstado.value = 'Derivado a Responsable';
+  // Guardar y enviar notificación
   saveCase();
 }
 
@@ -4639,12 +4650,15 @@ function saveCase() {
         nc.estado = 'Cerrado';
         if (!nc.fecha_cierre) nc.fecha_cierre = casoAnterior.fecha_cierre || new Date().toISOString().split('T')[0];
       } else if (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') {
-        // Felicitación/Sugerencia: no requieren respuesta del responsable
-        nc.estado = nc.responsable_email ? 'Pendiente' : casoAnterior.estado || 'Pendiente';
-      } else if (nc.responsable_email && nc.responsable_email.trim()) {
-        nc.estado = 'Derivado a Responsable';
-      } else {
         nc.estado = casoAnterior.estado || 'Pendiente';
+      } else {
+        // Respetar el estado que viene de f-estado (puede haber sido seteado por enviarAResponsable)
+        var fEstadoVal = document.getElementById('f-estado') ? document.getElementById('f-estado').value : '';
+        if (fEstadoVal && fEstadoVal !== casoAnterior.estado) {
+          nc.estado = fEstadoVal;
+        } else {
+          nc.estado = casoAnterior.estado || 'Pendiente';
+        }
       }
       data[idx]={...data[idx],...nc};
       // Asignar gestor si no estaba asignado (al tomar un caso nuevo)
@@ -4715,10 +4729,12 @@ function saveCase() {
     if (estadoForzado === 'Cerrado') {
       nc.estado = 'Cerrado';
       if (!nc.fecha_cierre) nc.fecha_cierre = new Date().toISOString().split('T')[0];
+    } else if (estadoForzado === 'Derivado a Responsable') {
+      nc.estado = 'Derivado a Responsable';
     } else if (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') {
       nc.estado = 'Pendiente';
     } else {
-      nc.estado = nc.responsable_email ? 'Derivado a Responsable' : 'Pendiente';
+      nc.estado = 'Pendiente';
     }
     // Capturar copias del DOM ANTES del async (el modal se cierra antes del .then)
     var _copiasPorGestion = gestionesData.map(function(g, gi) {
