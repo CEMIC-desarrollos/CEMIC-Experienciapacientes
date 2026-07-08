@@ -223,8 +223,8 @@
   .alert-bar.hidden { display: none; }
 
   /* MODAL */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-  .modal-overlay.active { display: flex; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex !important; }
   .modal { background: var(--surface); border-radius: 16px; padding: 32px; width: 680px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp 0.25s ease; }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 24px; color: var(--green-mid); }
@@ -924,166 +924,6 @@
   </div><!-- /tab-casos -->
 
 </main>
-
-<!-- ── VISTA USUARIO ──────────────────────────────────────────── -->
-<div id="user-view">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
-    <div>
-      <div class="user-welcome" id="user-welcome-title">Bienvenido/a</div>
-      <div class="user-welcome-sub" id="user-welcome-sub">Estas son las presentaciones derivadas a vos.</div>
-    </div>
-    <button onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
-      🗃️ Casos Archivados
-    </button>
-  </div>
-  <div class="user-stats" id="user-stats-bar"></div>
-  <div id="user-cases-list">
-    <div class="user-empty"><div class="user-empty-icon">📭</div><div>No tenés casos asignados.</div></div>
-  </div>
-</div>
-
-<!-- SUPERADMIN VIEW -->
-<div id="superadmin-view" style="display:none;padding:28px;max-width:1200px;margin:0 auto">
-  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px">
-    <button class="tab-btn active" id="sa-btn-casos" onclick="switchSATab('casos')">📋 Casos</button>
-    <button class="tab-btn" id="sa-btn-usuarios" onclick="switchSATab('usuarios')">👥 Usuarios</button>
-    <button class="tab-btn" id="sa-btn-trazabilidad" onclick="switchSATab('trazabilidad')">📜 Trazabilidad</button>
-    <button class="tab-btn" id="sa-btn-menus" onclick="switchSATab('menus')">⚙️ Menús</button>
-    <button class="tab-btn" id="sa-btn-tablero" onclick="switchSATab('tablero')">📊 Tablero</button>
-  </div>
-  <div id="sa-tab-casos"></div>
-  <div id="sa-tab-usuarios" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem">Gestión de Usuarios</h3>
-      <button class="btn" onclick="openUserModal()">+ Nuevo Usuario</button>
-    </div>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Rol</label>
-      <select id="sa-filter-rol" onchange="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif">
-        <option value="">Todos los roles</option>
-        <option value="admin">Gestor</option>
-        <option value="readonly">Solo Lectura</option>
-        <option value="responsable">Responsable</option>
-      </select></div>
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
-      <input type="text" id="sa-filter-usuario-buscar" placeholder="Nombre o usuario..." oninput="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
-    </div>
-    <div id="usuarios-list"></div>
-  </div>
-
-  <div id="sa-tab-trazabilidad" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem">Trazabilidad de Acciones</h3>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline" onclick="exportarTrazabilidad()" style="font-size:0.8rem">⬇️ Exportar Excel</button>
-        <button class="btn btn-outline" onclick="loadTrazabilidad()" style="font-size:0.8rem">🔄 Actualizar</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Fecha desde</label>
-      <input type="date" id="sa-traza-desde" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"></div>
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Fecha hasta</label>
-      <input type="date" id="sa-traza-hasta" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"></div>
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Usuario</label>
-      <input type="text" id="sa-traza-usuario" placeholder="Buscar usuario..." style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
-      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Acción</label>
-      <select id="sa-traza-accion" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif">
-        <option value="">Todas</option>
-        <option>Caso creado</option>
-        <option>Caso derivado a responsable</option>
-        <option>Respuesta enviada al presentante</option>
-        <option>Gestor asignado</option>
-        <option>Usuario creado</option>
-        <option>Usuario editado</option>
-        <option>Menú editado</option>
-      </select></div>
-      <div style="align-self:flex-end"><button class="btn btn-outline" onclick="loadTrazabilidad()" style="font-size:0.8rem;padding:7px 12px">🔍 Filtrar</button></div>
-    </div>
-    <div id="trazabilidad-list" style="overflow-y:auto;max-height:55vh"></div>
-  </div>
-  <div id="sa-tab-tablero" style="display:none">
-    <div style="margin-top:8px" id="sa-tablero-embed"></div>
-  </div>
-  <div id="sa-tab-menus" style="display:none">
-    <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem;margin-bottom:16px">Editor de Menús Desplegables</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="menus-grid"></div>
-  </div>
-</div>
-
-<!-- Modal Asignar Gestor -->
-<div class="modal-overlay" id="asignar-gestor-modal">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">👤 Asignar Gestor</div>
-    <div class="form-group" style="margin-bottom:16px">
-      <label>Seleccioná el Gestor</label>
-      <select id="asignar-gestor-select" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;font-family:DM Sans,sans-serif">
-        <option value="">— Sin asignar —</option>
-      </select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeAsignarGestor()">Cancelar</button>
-      <button class="btn" onclick="confirmarAsignarGestor()">Asignar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Eliminados -->
-<div class="modal-overlay" id="eliminados-modal">
-  <div class="modal" style="max-width:900px">
-    <div class="modal-title">🗑 Casos Eliminados</div>
-    <div id="eliminados-list" style="max-height:65vh;overflow-y:auto"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeEliminados()">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Usuario -->
-<div class="modal-overlay" id="user-modal">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-title" id="user-modal-title">Nuevo Usuario</div>
-    <div class="form-grid">
-      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="u-nombre" placeholder="Ej: Sofía"></div>
-      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="u-apellido" placeholder="Ej: Saponte"></div>
-      <div class="form-group"><label>Usuario <span class="req">*</span></label><input type="text" id="u-email" placeholder="saponte"></div>
-      <div class="form-group"><label>Mail <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400">(recuperación)</span></label><input type="email" id="u-mail-recuperacion" placeholder="ssaponte@cemic.edu.ar"></div>
-      <div class="form-group"><label>Contraseña <span class="req">*</span></label><input type="text" id="u-pass" placeholder="1234" value="1234"></div>
-      <div class="form-group"><label>Rol</label>
-        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option></select>
-      </div>
-      <div class="form-group full" id="campo-sector" style="display:none"><label>Sector / Área</label><input type="text" id="u-sector" placeholder="Ej: Ginecología, Traumatología..."></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
-      <button class="btn btn-danger" id="btn-delete-user" onclick="deleteUser()" style="display:none">🗑 Eliminar</button>
-      <button class="btn" onclick="saveUser()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL ARCHIVADOS ADMIN -->
-<div class="modal-overlay" id="archivados-admin-modal">
-  <div class="modal" style="max-width:900px">
-    <div class="modal-title">🗃️ Casos Archivados</div>
-    <div id="archivados-admin-list" style="max-height:65vh;overflow-y:auto"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeArchivadosAdmin()">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL ARCHIVADOS -->
-<div class="modal-overlay" id="archivados-modal">
-  <div class="modal" style="max-width:700px">
-    <div class="modal-title">🗃️ Casos Archivados</div>
-    <div id="archivados-list" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeArchivados()">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-title" id="modal-title">Nuevo Caso</div>
@@ -1280,19 +1120,189 @@
       </div>
     </div>
     <div id="modal-validation-msg">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
-    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none" title="Solo disponible para criticidad Baja o Media">
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <!-- Estado del caso -->
+        <span id="modal-estado-badge" style="padding:5px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;background:#f3f4f6;color:#374151"></span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <!-- Enviar a responsable: visible cuando hay gestión con responsable -->
+        <button class="btn btn-outline" id="btn-enviar-responsable" onclick="enviarAResponsable()" style="display:none;border-color:#1e7a44;color:#1e7a44">
+          📨 Enviar a responsable
+        </button>
+        <!-- Enviar respuesta al presentante: activo cuando hay respuesta del responsable -->
+        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none">
           📧 Enviar respuesta al presentante
         </button>
-        <button class="btn btn-outline" id="btn-cerrar-caso" onclick="cerrarCaso()" style="display:none;border-color:#dc2626;color:#dc2626">✕ Cerrar caso</button>
+        <!-- btn-cerrar-caso removido del footer — el cierre ocurre al enviar respuesta al presentante -->
         <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
         <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- ── VISTA USUARIO ──────────────────────────────────────────── -->
+<div id="user-view">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+    <div>
+      <div class="user-welcome" id="user-welcome-title">Bienvenido/a</div>
+      <div class="user-welcome-sub" id="user-welcome-sub">Estas son las presentaciones derivadas a vos.</div>
+    </div>
+    <button onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
+      🗃️ Casos Archivados
+    </button>
+  </div>
+  <div class="user-stats" id="user-stats-bar"></div>
+  <div id="user-cases-list">
+    <div class="user-empty"><div class="user-empty-icon">📭</div><div>No tenés casos asignados.</div></div>
+  </div>
+</div>
+
+<!-- SUPERADMIN VIEW -->
+<div id="superadmin-view" style="display:none;padding:28px;max-width:1200px;margin:0 auto">
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px">
+    <button class="tab-btn active" id="sa-btn-casos" onclick="switchSATab('casos')">📋 Casos</button>
+    <button class="tab-btn" id="sa-btn-usuarios" onclick="switchSATab('usuarios')">👥 Usuarios</button>
+    <button class="tab-btn" id="sa-btn-trazabilidad" onclick="switchSATab('trazabilidad')">📜 Trazabilidad</button>
+    <button class="tab-btn" id="sa-btn-menus" onclick="switchSATab('menus')">⚙️ Menús</button>
+    <button class="tab-btn" id="sa-btn-tablero" onclick="switchSATab('tablero')">📊 Tablero</button>
+  </div>
+  <div id="sa-tab-casos"></div>
+  <div id="sa-tab-usuarios" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem">Gestión de Usuarios</h3>
+      <button class="btn" onclick="openUserModal()">+ Nuevo Usuario</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Rol</label>
+      <select id="sa-filter-rol" onchange="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif">
+        <option value="">Todos los roles</option>
+        <option value="admin">Gestor</option>
+        <option value="readonly">Solo Lectura</option>
+        <option value="responsable">Responsable</option>
+      </select></div>
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
+      <input type="text" id="sa-filter-usuario-buscar" placeholder="Nombre o usuario..." oninput="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
+    </div>
+    <div id="usuarios-list"></div>
+  </div>
+
+  <div id="sa-tab-trazabilidad" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem">Trazabilidad de Acciones</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="exportarTrazabilidad()" style="font-size:0.8rem">⬇️ Exportar Excel</button>
+        <button class="btn btn-outline" onclick="loadTrazabilidad()" style="font-size:0.8rem">🔄 Actualizar</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Fecha desde</label>
+      <input type="date" id="sa-traza-desde" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"></div>
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Fecha hasta</label>
+      <input type="date" id="sa-traza-hasta" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"></div>
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Usuario</label>
+      <input type="text" id="sa-traza-usuario" placeholder="Buscar usuario..." style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
+      <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Acción</label>
+      <select id="sa-traza-accion" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif">
+        <option value="">Todas</option>
+        <option>Caso creado</option>
+        <option>Caso derivado a responsable</option>
+        <option>Respuesta enviada al presentante</option>
+        <option>Gestor asignado</option>
+        <option>Usuario creado</option>
+        <option>Usuario editado</option>
+        <option>Menú editado</option>
+      </select></div>
+      <div style="align-self:flex-end"><button class="btn btn-outline" onclick="loadTrazabilidad()" style="font-size:0.8rem;padding:7px 12px">🔍 Filtrar</button></div>
+    </div>
+    <div id="trazabilidad-list" style="overflow-y:auto;max-height:55vh"></div>
+  </div>
+  <div id="sa-tab-tablero" style="display:none">
+    <div style="margin-top:8px" id="sa-tablero-embed"></div>
+  </div>
+  <div id="sa-tab-menus" style="display:none">
+    <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem;margin-bottom:16px">Editor de Menús Desplegables</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="menus-grid"></div>
+  </div>
+</div>
+
+<!-- Modal Asignar Gestor -->
+<div class="modal-overlay" id="asignar-gestor-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">👤 Asignar Gestor</div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Seleccioná el Gestor</label>
+      <select id="asignar-gestor-select" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;font-family:DM Sans,sans-serif">
+        <option value="">— Sin asignar —</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAsignarGestor()">Cancelar</button>
+      <button class="btn" onclick="confirmarAsignarGestor()">Asignar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminados -->
+<div class="modal-overlay" id="eliminados-modal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title">🗑 Casos Eliminados</div>
+    <div id="eliminados-list" style="max-height:65vh;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEliminados()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Usuario -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="user-modal-title">Nuevo Usuario</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="u-nombre" placeholder="Ej: Sofía"></div>
+      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="u-apellido" placeholder="Ej: Saponte"></div>
+      <div class="form-group"><label>Usuario <span class="req">*</span></label><input type="text" id="u-email" placeholder="saponte"></div>
+      <div class="form-group"><label>Mail <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400">(recuperación)</span></label><input type="email" id="u-mail-recuperacion" placeholder="ssaponte@cemic.edu.ar"></div>
+      <div class="form-group"><label>Contraseña <span class="req">*</span></label><input type="text" id="u-pass" placeholder="1234" value="1234"></div>
+      <div class="form-group"><label>Rol</label>
+        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option></select>
+      </div>
+      <div class="form-group full" id="campo-sector" style="display:none"><label>Sector / Área</label><input type="text" id="u-sector" placeholder="Ej: Ginecología, Traumatología..."></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn btn-danger" id="btn-delete-user" onclick="deleteUser()" style="display:none">🗑 Eliminar</button>
+      <button class="btn" onclick="saveUser()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ARCHIVADOS ADMIN -->
+<div class="modal-overlay" id="archivados-admin-modal">
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title">🗃️ Casos Archivados</div>
+    <div id="archivados-admin-list" style="max-height:65vh;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeArchivadosAdmin()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ARCHIVADOS -->
+<div class="modal-overlay" id="archivados-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title">🗃️ Casos Archivados</div>
+    <div id="archivados-list" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeArchivados()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+
 
 <script>
 // ─── USUARIOS ──────────────────────────────────────────────
@@ -1553,6 +1563,8 @@ function renderGestiones() {
     onCriticidadGestion(i);
     if (g.sede) updateSectoresBySede(i, g.sede);
   });
+  // Actualizar footer con estado y botones
+  updateModalEstado();
   syncLegacyFields();
 }
 
@@ -1600,7 +1612,7 @@ function setVencimientoGestion(idx) {
 }
 
 // ─── TIPO Y MOTIVO RECLAMO ────────────────────────────────────
-var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitado", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Portal web", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Canal no responde", "Turno mal dado", "Información incorrecta"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/Hurto/Objeto perdido"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "Reclamo Resultado": ["Demora de entrega", "Informe incorrecto"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamos administrativos", "Óptica"]};
+var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitado", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Canal no responde", "Turno mal dado", "Información incorrecta", "Portal web"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/Hurto/Objeto perdido"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "Reclamo Resultado": ["Demora de entrega", "Informe incorrecto"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamos administrativos", "Óptica"]};
 var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "Reclamo Resultado", "General/Otros", "Prepago"];
 
 function onTipoReclamoChange() {
@@ -1667,6 +1679,50 @@ function syncTipoFelicitacion() {
   var otro = (document.getElementById('f-tipo-felicitacion-otro')||{}).value || '';
   var fMotivo = document.getElementById('f-motivo');
   if (fMotivo) fMotivo.value = (val === 'Otros' && otro) ? 'Otros: ' + otro : val;
+}
+
+
+
+function updateModalEstado() {
+  // Mostrar estado actual del caso en el footer
+  var estadoEl = document.getElementById('modal-estado-badge');
+  if (!estadoEl) return;
+  var estado = '';
+  if (editingId) {
+    var d = data.find(function(x){ return x.id === editingId; });
+    estado = d ? (d.estado||'') : '';
+  }
+  if (estado) {
+    estadoEl.textContent = 'Estado: ' + estado;
+    estadoEl.style.background = getBgStatus(estado);
+    estadoEl.style.color = getColorStatus(estado);
+    estadoEl.style.display = 'inline-block';
+  } else {
+    estadoEl.style.display = 'none';
+  }
+
+  // Botón "Enviar a responsable": visible si hay gestión con email de responsable
+  var btnResp = document.getElementById('btn-enviar-responsable');
+  if (btnResp) {
+    var tieneResponsable = gestionesData.some(function(g){
+      return g.responsable_email && g.responsable_email.trim();
+    });
+    btnResp.style.display = (tieneResponsable && editingId) ? 'inline-flex' : 'none';
+  }
+
+  // Botón "Enviar respuesta al presentante": activo solo si hay respuesta del responsable
+  var btnEnviar = document.getElementById('btn-enviar-respuesta');
+  if (btnEnviar) {
+    var hayRespuesta = gestionesData.some(function(g){
+      return g.respuesta && g.respuesta.trim();
+    });
+    btnEnviar.style.display = (hayRespuesta && editingId) ? 'inline-flex' : 'none';
+  }
+}
+
+function enviarAResponsable() {
+  // Guarda el caso y envía notificación al responsable
+  saveCase();
 }
 
 
@@ -2490,6 +2546,7 @@ function renderDireccionView() {
         '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">' + (d.motivo||'—') + '</div>' +
         '<div class="case-relato-label">Relato del hecho</div>' +
         '<div class="case-relato">' + (d.relato||'Sin relato registrado.') + '</div>' +
+        (d.resumen_gestiones ? '<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">' + d.resumen_gestiones + '</div></div>' : '') +
         (d.adjunto_base64 ? '<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="' + d.adjunto_base64 + '" download="' + (d.adjunto_nombre||'adjunto') + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ' + (d.adjunto_nombre||'Descargar archivo') + '</a></div>' : '') +
         respHtml + accionHtml +
         '<div style="margin-top:14px">' +
@@ -2594,6 +2651,7 @@ function renderDireccionView() {
         (d.dni ? '<div style="font-size:0.78rem;color:var(--text-muted)">DNI: ' + d.dni + '</div>' : '') +
         '<div class="case-relato-label" style="margin-top:8px">Relato</div>' +
         '<div class="case-relato">' + (d.relato||'Sin relato.') + '</div>' +
+        (d.resumen_gestiones ? '<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">' + d.resumen_gestiones + '</div></div>' : '') +
         '<div class="case-relato-label" style="margin-top:8px">Responsable Asignado</div>' +
         '<div style="font-size:0.84rem;margin-bottom:4px">' + (d.responsable ? '<strong>' + d.responsable + '</strong>' + (d.responsable_email ? ' <span style="color:var(--text-muted);font-size:0.78rem">· ' + d.responsable_email + '</span>' : '') : '<span style="color:#94a3b8;font-style:italic">Sin responsable asignado</span>') + '</div>' +
         (d.respuesta
@@ -2746,6 +2804,7 @@ function renderUserView() {
         <div class="case-relato-label">Relato del hecho</div>
         <div class="case-relato">${d.relato||'Sin relato registrado.'}</div>
         ` + (d.adjunto_base64 ? `<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="` + d.adjunto_base64 + `" download="` + (d.adjunto_nombre||'adjunto') + `" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ` + (d.adjunto_nombre||'Descargar archivo') + `</a></div>` : '') + `
+        ${d.resumen_gestiones ? `<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">${d.resumen_gestiones}</div></div>` : ''}
         <div class="case-respuesta">
           ${(d.tipo === 'Felicitación' || d.tipo === 'Sugerencia') ? `
             <!-- Felicitación/Sugerencia: solo lectura, sin campos de respuesta/acción -->
@@ -3486,7 +3545,7 @@ function toggleCerrarCaso() {
   var crit = document.getElementById('f-criticidad').value;
   var tipo = document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '';
   var btn = document.getElementById('btn-cerrar-caso');
-  if (!btn) return;
+  if (!btn) return; // botón removido del footer
   var rol = currentUser ? currentUser.rol : '';
   var esAlta = (crit === 'Alta' || crit === 'Crítica' || crit === 'Evento Crítico');
   var esBajaMedia = (crit === 'Baja' || crit === 'Media');
@@ -3552,6 +3611,20 @@ function updateBtnEnviarRespuesta() {
 }
 
 function enviarRespuestaPresentanteManual() {
+  // Después de enviar, cerrar caso para Baja/Media
+  var _afterSend = function() {
+    var crit = editingId ? (data.find(function(x){return x.id===editingId;})||{}).criticidad||'' : '';
+    var esBajaMedia = crit === 'Baja' || crit === 'Media';
+    if (esBajaMedia && editingId) {
+      var idx = data.findIndex(function(x){return x.id===editingId;});
+      if (idx !== -1) {
+        data[idx].estado = 'Cerrado';
+        if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
+        saveCaso(data[idx]);
+        updateModalEstado();
+      }
+    }
+  };
   var crit = document.getElementById('f-criticidad').value;
   if (crit !== 'Baja' && crit !== 'Media') { alert('Solo disponible para criticidad Baja o Media.'); return; }
   // Leer mail del objeto data (el campo puede estar deshabilitado)
@@ -3566,7 +3639,7 @@ function enviarRespuestaPresentanteManual() {
   var sede   = caso ? caso.sede   : document.getElementById('f-sede').value;
   if (!emailjsReady) { alert('EmailJS no está listo.'); return; }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA_ADMIN, {
     to_email:  mail,
     to_name:   nombre || 'Presentante',
     caso_id:   editingId || '—',
@@ -3579,6 +3652,7 @@ function enviarRespuestaPresentanteManual() {
   }).then(function() {
     alert('✅ Respuesta enviada correctamente a ' + mail);
     logTrazabilidad('Respuesta enviada al presentante', 'Caso #'+(editingId||'—')+' → '+mail);
+    if (typeof _afterSend === 'function') _afterSend();
     // Notificar al responsable que el caso fue cerrado
     if (emailjsReady && caso && caso.responsable_email) {
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
@@ -3689,6 +3763,7 @@ function toggleComentarioDir() {
   // Botones: ocultar para Alta y Crítica
   var btnEnviar = document.getElementById('btn-enviar-respuesta');
   var btnCerrar = document.getElementById('btn-cerrar-caso');
+  if (!btnCerrar) { closeModal(); return; }
   if (esAltaOCritico) {
     if (btnEnviar) btnEnviar.style.display = 'none';
     if (btnCerrar) btnCerrar.style.display = 'none';
@@ -4138,7 +4213,7 @@ function openModal(id) {
   editingId = id || null;
   document.getElementById('modal-title').textContent = id ? '✏️ Editar Caso' : '🗃️ Nuevo Caso'; // se actualiza abajo
   // Visibilidad de "Cerrar caso" se actualiza despues de cargar gestiones (syncLegacyFields)
-  document.getElementById('btn-cerrar-caso').style.display = 'none';
+  var _btnCerrar = document.getElementById('btn-cerrar-caso'); if (_btnCerrar) _btnCerrar.style.display = 'none';
   const btnCerrar2 = document.getElementById('btn-cerrar-caso-2');
   if (btnCerrar2) btnCerrar2.style.display = 'none';
   // Botón enviar respuesta: solo visible al editar, activo solo si criticidad Baja o Media
@@ -4187,6 +4262,7 @@ function openModal(id) {
     checkObsAdmin();
     toggleComentarioDir();
     toggleCerrarCaso();
+    updateModalEstado();
     // Controlar botón Guardar DESPUÉS de que f-tipo tiene su valor
     var tipoActualModal = document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '';
     var esFelSugNow = (tipoActualModal === 'Felicitación' || tipoActualModal === 'Sugerencia');
@@ -4199,8 +4275,7 @@ function openModal(id) {
   // Ahora que las gestiones estan cargadas, actualizar btn cerrar caso
   if (id) {
     var critAfter = document.getElementById('f-criticidad').value;
-    var btnCerrarFinal = document.getElementById('btn-cerrar-caso');
-    if (btnCerrarFinal) btnCerrarFinal.style.display = (critAfter === 'Alta' || critAfter === 'Critica') ? 'inline-flex' : 'none';
+    // btn-cerrar-caso removido del footer
     var btnCerrar2Final = document.getElementById('btn-cerrar-caso-2');
     if (btnCerrar2Final) btnCerrar2Final.style.display = (critAfter === 'Alta' || critAfter === 'Critica') ? 'inline-flex' : 'none';
   }
@@ -4355,7 +4430,13 @@ function openModal(id) {
   }
   renderAdjuntosList();
 
-  document.getElementById('modal-overlay').classList.add('active');
+  var _mo = document.getElementById('modal-overlay');
+  // Mover al body para evitar problemas de stacking context
+  if (_mo.parentElement !== document.body) {
+    document.body.appendChild(_mo);
+  }
+  _mo.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:rgba(0,0,0,0.5) !important; align-items:center !important; justify-content:center !important;';
+  _mo.classList.add('active');
   // Lock fields if editing an existing case
   lockFields(!!id);
   // If editing, scroll modal to Gestión y Seguimiento
@@ -4367,7 +4448,9 @@ function openModal(id) {
   }
 }
 function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('active');
+  var _mo = document.getElementById('modal-overlay');
+  _mo.classList.remove('active');
+  _mo.style.cssText = '';
   editingId = null;
   lockFields(false);
   ['f-fecha','f-hora','f-sede','f-servicio','f-tipo','f-motivo','f-apellido','f-nombre','f-dni','f-criticidad','f-responsable','f-responsable-email','f-estado']
@@ -4699,8 +4782,9 @@ var EMAILJS_SERVICE_ID        = 'service_e44ykfo';
 var EMAILJS_TEMPLATE_ID       = 'template_6vwexef';   // notif responsable normal
 var EMAILJS_TEMPLATE_RECUPERAR = 'template_f981g9v';  // recuperación de contraseña
 var EMAILJS_TEMPLATE_CRITICO  = 'template_cw7ifbb';   // notif crítico
-var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación al presentante ← reemplazar
-var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// respuesta al presentante ← reemplazar
+var EMAILJS_TEMPLATE_CONFIRM       = 'template_n6t2u5q';  // confirmación automática al presentante
+var EMAILJS_TEMPLATE_RESPUESTA_ADMIN = 'template_v0xc46f';   // respuesta manual admin → presentante
+var EMAILJS_TEMPLATE_RESPUESTA       = 'template_le6zo3n';   // copia interna
 var emailjsReady = false;
 try {
   if (EMAILJS_PUBLIC_KEY !== 'TU_PUBLIC_KEY') {
@@ -4767,7 +4851,7 @@ function sendRespuestaPresentante(nc) {
   if (!nc.obs_admin || !nc.obs_admin.trim()) return;
   // Aplica para todas las criticidades que correspondan
   if (!emailjsReady) return;
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA_ADMIN, {
     to_email:  nc.mail_presentante.trim(),
     to_name:   ((nc.apellido||'') + ' ' + (nc.nombre||'')).trim() || 'Presentante',
     caso_id:   nc.id,
