@@ -3654,7 +3654,7 @@ function enviarRespuestaPresentanteManual() {
     caso_sede: sede,
     caso_crit: caso ? (caso.criticidad || '—') : '—',
     paciente:  nombre || 'Presentante',
-    app_url:   'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html',
+    app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
     message:   resp,
   }).then(function() {
     alert('✅ Respuesta enviada correctamente a ' + mail);
@@ -3669,7 +3669,7 @@ function enviarRespuestaPresentanteManual() {
         caso_sede: caso.sede,
         caso_crit: caso.criticidad || '—',
         paciente:  `${caso.apellido||''} ${caso.nombre||''}`,
-        app_url:   'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html',
+        app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
         message:   `Se informó al paciente la siguiente respuesta:\n\n"${resp}"\n\nEl caso #${caso.id} ha sido marcado como CERRADO.`
       }).catch(err => console.warn('Notif responsable cierre:', err));
     }
@@ -4831,7 +4831,7 @@ function sendRespuestaPresentante(nc) {
 function sendNotificationEmails(nc) {
 
   if (!emailjsReady) { console.warn('[NOTIF] emailjsReady=false, abortando'); return; }
-  const appUrl = 'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html';
+  const appUrl = 'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html';
 
   // Notificar a cada gestión
   var gestiones = nc.gestiones && nc.gestiones.length > 0 ? nc.gestiones : [nc];
