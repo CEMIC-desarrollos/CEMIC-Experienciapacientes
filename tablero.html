@@ -223,8 +223,8 @@
   .alert-bar.hidden { display: none; }
 
   /* MODAL */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-  .modal-overlay.active { display: flex !important; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
   .modal { background: var(--surface); border-radius: 16px; padding: 32px; width: 680px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp 0.25s ease; }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 24px; color: var(--green-mid); }
@@ -923,9 +923,7 @@
 
   </div><!-- /tab-casos -->
 
-
 </main>
-
 
 <!-- ── VISTA USUARIO ──────────────────────────────────────────── -->
 <div id="user-view">
@@ -1086,7 +1084,214 @@
 </div>
 
 <!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Nuevo Caso</div>
+    <div class="form-grid">
 
+      <div class="locked-banner" id="locked-banner">🔒 Los datos del presentante, sede y tipo no pueden modificarse una vez guardado el caso.</div>
+      <div class="form-section-divider" id="section-fecha-lugar"><span>📅 Fecha y Lugar</span></div>
+      <div class="form-group"><label>Fecha de Ingreso <span class="req">*</span></label><input type="date" id="f-fecha"></div>
+      <div class="form-group"><label>Hora de Ingreso <span class="req">*</span></label><input type="time" id="f-hora"></div>
+      <!-- Sede y Servicio hidden - se carga desde gestiones -->
+      <input type="hidden" id="f-sede" value="">
+      <input type="hidden" id="f-servicio" value="">
+      <input type="hidden" id="f-servicio-texto" value="">
+
+      <div class="form-section-divider"><span>👤 Datos del Presentante</span></div>
+      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="f-apellido" placeholder="García"></div>
+      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="f-nombre" placeholder="María"></div>
+      <div class="form-group"><label>DNI <span class="req">*</span></label><input type="text" id="f-dni" placeholder="12345678"></div>
+      <div class="form-group"><label>Mail del Presentante <span class="req">*</span></label><input type="email" id="f-mail-presentante" placeholder="mail@ejemplo.com"></div>
+      <div class="form-group"><label>Teléfono</label><input type="text" id="f-telefono" placeholder="11-1234-5678"></div>
+
+
+      <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
+      <div class="form-group full" id="campo-adjunto" style="display:none">
+        <label>📎 Adjuntar Archivos (hasta 3)</label>
+        <div id="adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        <div style="margin-top:8px">
+          <label id="btn-agregar-adjunto" style="background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:inline-flex;align-items:center;gap:6px">
+            📁 Agregar archivo
+            <input type="file" id="f-adjunto" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleAdjunto(this)">
+          </label>
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:10px">PDF, JPG, PNG · Máx. 5MB por archivo · Hasta 3 archivos</span>
+        </div>
+      </div>
+      <div class="form-group full"><label>Relato del Hecho</label><textarea id="f-relato" placeholder="Descripción del caso..."></textarea></div>
+
+      <div class="form-section-divider"><span>📌 Tipo y Clasificación</span></div>
+      <div class="form-group">
+        <label>Presentación <span class="req">*</span></label>
+        <select id="f-tipo" onchange="toggleComentarioDir(); updateMotivoAdmin(); renderGestiones(); toggleCerrarCaso(); toggleBloquesFelicitacion(); toggleGuardarBtn()"><option>Queja / Reclamo</option><option>Sugerencia</option><option>Felicitación</option></select>
+      </div>
+
+      <!-- Tipo de Reclamo y Motivo — solo para Queja/Reclamo -->
+      <div id="bloque-tipo-reclamo" style="display:none;grid-column:1/-1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+          <div class="form-group">
+            <label>Tipo de Reclamo</label>
+            <select id="f-tipo-reclamo" onchange="onTipoReclamoChange()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+              <option value="">Seleccioná...</option>
+              <option>Reclamo Medico</option>
+              <option>Reclamo Administrativo</option>
+              <option>Reclamo Enfermería</option>
+              <option>Reclamo Técnico</option>
+              <option>Reclamo de Infraestructura</option>
+              <option>Reclamo Maestranza</option>
+              <option>Reclamo Sistemas/Soporte</option>
+              <option>Comunicación</option>
+              <option>Alimentación</option>
+              <option>Turnos</option>
+              <option>Seguridad/Vigilancia</option>
+              <option>Bioingeniería</option>
+              <option>General/Otros</option>
+              <option>Prepago</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Motivo del Reclamo</label>
+            <select id="f-motivo-reclamo" onchange="toggleMotivoOtroReclamo(); syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+              <option value="">— primero elegí tipo —</option>
+            </select>
+          </div>
+        </div>
+        <div id="bloque-motivo-otro-reclamo" style="display:none;margin-top:8px">
+          <div class="form-group">
+            <label>Especificá el motivo</label>
+            <input type="text" id="f-motivo-reclamo-otro" placeholder="Describí el motivo..." oninput="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          </div>
+        </div>
+        <div class="form-group" id="bloque-servicio-medico" style="display:none;margin-top:8px">
+          <label>Servicio / Departamento</label>
+          <select id="f-servicio-medico" onchange="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+            <option value="">Seleccioná servicio...</option>
+            <option>Anatomía Patológica</option>
+            <option>Cirugía</option>
+            <option>Clínica Médica y Especialidades Clínicas</option>
+            <option>Emergencias</option>
+            <option>Gastroenterología</option>
+            <option>Ginecología y Obstetricia</option>
+            <option>Hemodinamia</option>
+            <option>Hospital de Día Oncológico</option>
+            <option>Imágenes</option>
+            <option>Neonatología</option>
+            <option>Pediatría</option>
+            <option>Radioterapia</option>
+            <option>Rehabilitación (Terapia Física, T. Ocupacional, Fono)</option>
+            <option>Terapia Intensiva</option>
+            <option>Traumatología</option>
+            <option>Unidad Coronaria</option>
+            <option>UTI Pediátrica</option>
+          </select>
+        </div>
+      </div>
+      <!-- Tipo de Felicitación — solo visible para Felicitación -->
+      <div class="form-group" id="bloque-tipo-felicitacion" style="display:none">
+        <label>Tipo de Felicitación</label>
+        <select id="f-tipo-felicitacion" onchange="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          <option value="">Seleccioná...</option>
+          <option>Calidad de Atención Médica</option>
+          <option>Calidad de Atención Administrativa</option>
+          <option>Calidad de Atención Enfermería</option>
+          <option>Calidad de Atención Técnica</option>
+          <option>Calidad de Atención General</option>
+          <option>Puntualidad en la Atención Médica</option>
+          <option>Puntualidad en la Atención Administrativa</option>
+          <option>Instalaciones</option>
+          <option>General</option>
+          <option>Otros</option>
+        </select>
+        <div id="bloque-tipo-fel-otro" style="display:none;margin-top:8px">
+          <input type="text" id="f-tipo-felicitacion-otro" placeholder="Especificá el tipo de felicitación..." oninput="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+        </div>
+      </div>
+      <!-- Motivo hidden - se carga desde gestiones -->
+      <input type="hidden" id="f-motivo" value="">
+      <div style="display:none" id="campo-motivo-admin"></div>
+      <div class="form-section-divider" id="section-gestion"><span>⚙️ Gestión y Seguimiento</span></div>
+
+      <!-- GESTIONES MÚLTIPLES -->
+      <div id="gestiones-container" class="full" style="grid-column:1/-1"></div>
+      <!-- Botón agregar como barra -->
+      <div class="full" style="grid-column:1/-1;border:2px dashed var(--border);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px">
+        <button type="button" class="btn btn-outline" onclick="agregarGestion()" style="font-size:0.85rem;padding:8px 20px;width:100%">⊕ Agregar Gestión y Seguimiento</button>
+      </div>
+      <!-- Enviar en copia -->
+      <div class="full" id="campo-copia-mail" style="grid-column:1/-1;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;background:#f8fafc;display:none">
+        <!-- Modo nuevo caso: checkbox + campos editables -->
+        <div id="copia-modo-nuevo">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--green-dark)">
+            <input type="checkbox" id="chk-enviar-copia" onchange="toggleCopiaMailUI()" style="width:16px;height:16px;accent-color:var(--green-main)">
+            📤 Enviar caso en copia a otros destinatarios
+          </label>
+          <div id="copia-mail-fields" style="display:none;margin-top:12px">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">Hasta 3 direcciones de correo. Recibirán un resumen con datos del paciente, relato y adjuntos.</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="email" id="copia-mail-1" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-1').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-2">
+                <input type="email" id="copia-mail-2" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-2').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-3">
+                <input type="email" id="copia-mail-3" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-3').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <button type="button" id="btn-agregar-copia" onclick="agregarCampoCopia()" style="align-self:flex-start;background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 14px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">+ Agregar otro mail</button>
+            </div>
+          </div>
+        </div>
+        <!-- Modo edición: mails guardados readonly -->
+        <div id="copia-modo-readonly" style="display:none">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--green-dark);margin-bottom:6px">📤 Enviado en copia a</div>
+          <div id="copia-readonly-lista"></div>
+        </div>
+      </div>
+
+      <!-- Hidden legacy inputs for backward compat -->
+      <input type="hidden" id="f-criticidad" value="Baja">
+      <input type="hidden" id="f-responsable" value="">
+      <input type="hidden" id="f-responsable-email" value="">
+      <input type="hidden" id="f-responsable-login" value="">
+      <input type="hidden" id="f-estado" value="Pendiente">
+      <input type="hidden" id="f-vencimiento" value="">
+      <!-- f-respuesta y f-accion se mantienen como hidden para compat con saveCase -->
+      <input type="hidden" id="f-respuesta" value="">
+      <input type="hidden" id="f-accion" value="">
+
+      <div class="form-group full" id="campo-comentario-dir" style="display:none"><label>💼 Comentario Dirección</label><textarea id="f-comentario-dir" placeholder="Cargado por Dirección..." style="min-height:60px;background:#f0f5ff;color:var(--text-muted);cursor:not-allowed;border-color:#c7d7f5" readonly></textarea></div>
+      <div class="form-group full"><label>📋 Respuesta al Paciente</label><textarea id="f-obs-admin" placeholder="Respuesta enviada al paciente..." style="min-height:60px;background:#fefce8;border-color:#fde68a" oninput="checkObsAdmin(); updateBtnEnviarRespuesta()"></textarea></div>
+      <div class="form-group full">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span>🗒️ Resumen de Gestiones</span>
+          <button type="button" onclick="guardarResumenGestiones()" title="Guardar resumen" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.8rem;color:var(--green-dark)">💾 Guardar</button>
+        </label>
+        <textarea id="f-resumen-gestiones" placeholder="Notas internas / resumen de la gestión del caso..." style="min-height:60px"></textarea>
+        <div id="resumen-saved-msg" style="display:none;font-size:0.72rem;color:#065f46;margin-top:3px">✅ Guardado</div>
+      </div>
+      <div class="form-group" id="campo-fecha-cierre" style="display:none">
+        <label>📅 Fecha de Cierre</label>
+        <input type="date" id="f-fecha-cierre" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px">Se completa automáticamente al cerrar el caso</div>
+      </div>
+    </div>
+    <div id="modal-validation-msg">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none" title="Solo disponible para criticidad Baja o Media">
+          📧 Enviar respuesta al presentante
+        </button>
+        <button class="btn btn-outline" id="btn-cerrar-caso" onclick="cerrarCaso()" style="display:none;border-color:#dc2626;color:#dc2626">✕ Cerrar caso</button>
+        <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
+        <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ─── USUARIOS ──────────────────────────────────────────────
@@ -1125,7 +1330,8 @@ function loadData(callback) {
       var d = doc.data();
       // Migrar respuesta/accion legacy al array gestiones si las gestiones no la tienen
       if (d.gestiones && d.gestiones.length > 0) {
-        // No copiar d.respuesta a gestiones[0] — cada gestión tiene su propia respuesta
+        if (d.respuesta && !d.gestiones[0].respuesta) d.gestiones[0].respuesta = d.respuesta;
+        if (d.accion && !d.gestiones[0].accion) d.gestiones[0].accion = d.accion;
       }
       // Si está Cerrado sin fecha_cierre, asignar la fecha de hoy y persistir en Firebase
       if (d.estado === 'Cerrado' && !d.fecha_cierre) {
@@ -1154,7 +1360,8 @@ function startRealtimeListener() {
     snapshot.forEach(function(doc) {
       var d = doc.data();
       if (d.gestiones && d.gestiones.length > 0) {
-        // No copiar d.respuesta a gestiones[0] — cada gestión tiene su propia respuesta
+        if (d.respuesta && !d.gestiones[0].respuesta) d.gestiones[0].respuesta = d.respuesta;
+        if (d.accion && !d.gestiones[0].accion) d.gestiones[0].accion = d.accion;
       }
       // Si está Cerrado sin fecha_cierre, asignar la fecha de hoy y persistir en Firebase
       if (d.estado === 'Cerrado' && !d.fecha_cierre) {
@@ -1206,8 +1413,8 @@ function preloadResponsables() {
 // ─── GESTIONES MÚLTIPLES ───────────────────────────────────
 var gestionesData = [];
 var MOTIVOS_GESTION = ['Demora','Maltrato','Cancelación','Otro'];
-var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo','General / Otros'];
-var SECTORES_GESTION = ['Guardia','Internación','Facturación','Enfermería','Quirófano','Clínica Médica','Pediatría','Obstetricia','Admisión','Farmacia','Laboratorio','Diagnóstico por Imágenes','Hemoterapia','Rehabilitación','Odontología','General / Otros'];
+var SEDES_GESTION = ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'];
+var SECTORES_GESTION = ['Guardia','Internación','Facturación','Enfermería','Cirugía','Clínica Médica','Pediatría','Obstetricia','Admisión','Farmacia','Laboratorio','Diagnóstico por Imágenes','Otro'];
 var CRITICIDADES_GESTION = ['No procedente','Baja','Media','Alta','Evento Crítico'];
 
 function agregarGestion(data) {
@@ -1229,7 +1436,7 @@ function eliminarGestion(idx) {
 function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val||''; }
 
 var SERVICIOS_MEDICOS = ['Anatomía Patológica','Cirugía','Clínica Médica y Especialidades Clínicas','Emergencias','Gastroenterología','Ginecología y Obstetricia','Hemodinamia','Hospital de Día Oncológico','Imágenes','Neonatología','Pediatría','Radioterapia','Rehabilitación (Terapia Física, T. Ocupacional, Fono)','Terapia Intensiva','Traumatología','Unidad Coronaria','UTI Pediátrica'];
-var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "Hospital de Mediodía", "Oncología", "Odontología", "Hemoterapia", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Quirófano", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Quirófano Ambulatorio", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"], "General / Otros": ["General / Otros"]};
+var SEDE_SECTORES_MAP = {"Saavedra": ["Consultorios Externos", "Laboratorio", "Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "Hospital de Mediodía", "Oncología", "Odontología", "General / Otros"], "Pombo": ["Imágenes", "Guardia", "Internación", "Admisión", "Cirugía", "General / Otros"], "Las Heras": ["Consultorios Externos", "Laboratorio", "Imágenes", "Cirugía Ambulatoria", "General / Otros"], "Carabobo": ["Consultorios Externos", "General / Otros"], "Talcahuano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "Odontología", "General / Otros"], "Belgrano": ["Consultorios Externos", "Laboratorio", "Imágenes", "Rehabilitación", "General / Otros"], "San Isidro": ["Consultorios Externos", "Laboratorio", "Rehabilitación", "General / Otros"], "Ballester": ["Consultorios Externos", "Imágenes", "General / Otros"]};
 
 function renderGestiones() {
   var cont = document.getElementById('gestiones-container');
@@ -1265,7 +1472,7 @@ function renderGestiones() {
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">' +
         '<div class="form-group"><label style="font-size:0.72rem">Sede <span class="req">*</span></label>' +
-          '<select id="g-sede-'+i+'" onchange="syncGestionField('+i+',\'sede\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"><option value="">Seleccioná...</option><option>Saavedra</option><option>Pombo</option><option>Las Heras</option><option>Talcahuano</option><option>Ballester</option><option>San Isidro</option><option>Belgrano</option><option>Carabobo</option><option>General / Otros</option></select></div>' +
+          '<select id="g-sede-'+i+'" onchange="syncGestionField('+i+',\'sede\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem"><option value="">Seleccioná...</option>'+sedesOpts+'</select></div>' +
         '<div class="form-group"><label style="font-size:0.72rem">Sector / Servicio</label>' +
           '<select id="g-sector-'+i+'" onchange="syncGestionField('+i+',\'sector\',this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">' +
           (function(){
@@ -1347,8 +1554,6 @@ function renderGestiones() {
     onCriticidadGestion(i);
     if (g.sede) updateSectoresBySede(i, g.sede);
   });
-  // Actualizar footer con estado y botones
-  updateModalEstado();
   syncLegacyFields();
 }
 
@@ -1396,8 +1601,8 @@ function setVencimientoGestion(idx) {
 }
 
 // ─── TIPO Y MOTIVO RECLAMO ────────────────────────────────────
-var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitado", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Canal no responde", "Turno mal dado", "Información incorrecta", "Portal web"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/Hurto/Objeto perdido"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "Reclamo Resultado": ["Demora de entrega", "Informe incorrecto"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamos administrativos", "Óptica"]};
-var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "Reclamo Resultado", "General/Otros", "Prepago"];
+var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas", "Demora Técnica"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Caída del Portal de Turnos", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Turno prolongado/accesibilidad", "Turno Cancelado", "Calidad de atención del operador", "Portal web", "Canal no responde", "Turno mal dado"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/hurto"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta"]};
+var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "General/Otros", "Prepago"];
 
 function onTipoReclamoChange() {
   var tipo = document.getElementById('f-tipo-reclamo').value;
@@ -1463,61 +1668,6 @@ function syncTipoFelicitacion() {
   var otro = (document.getElementById('f-tipo-felicitacion-otro')||{}).value || '';
   var fMotivo = document.getElementById('f-motivo');
   if (fMotivo) fMotivo.value = (val === 'Otros' && otro) ? 'Otros: ' + otro : val;
-}
-
-
-
-function updateModalEstado() {
-  // Mostrar estado actual del caso en el footer
-  var estadoEl = document.getElementById('modal-estado-badge');
-  if (!estadoEl) return;
-  var estado = '';
-  if (editingId) {
-    var d = data.find(function(x){ return x.id === editingId; });
-    estado = d ? (d.estado||'') : '';
-  }
-  if (estado) {
-    estadoEl.textContent = 'Estado: ' + estado;
-    estadoEl.style.background = getBgStatus(estado);
-    estadoEl.style.color = getColorStatus(estado);
-    estadoEl.style.display = 'inline-block';
-  } else {
-    estadoEl.style.display = 'none';
-  }
-
-  // Botón "Enviar a responsable": visible si hay gestión con email de responsable (nuevo o editando)
-  var btnResp = document.getElementById('btn-enviar-responsable');
-  if (btnResp) {
-    var tieneResponsable = gestionesData.some(function(g){
-      return g.responsable_email && g.responsable_email.trim();
-    });
-    btnResp.style.display = tieneResponsable ? 'inline-flex' : 'none';
-  }
-
-  // Botón "Enviar respuesta al presentante": solo si hay respuesta del responsable Y caso existe
-  var btnEnviar = document.getElementById('btn-enviar-respuesta');
-  if (btnEnviar) {
-    var hayRespuesta = gestionesData.some(function(g){
-      return g.respuesta && g.respuesta.trim();
-    });
-    var crit = document.getElementById('f-criticidad') ? document.getElementById('f-criticidad').value : '';
-    var esBajaMedia = (crit === 'Baja' || crit === 'Media');
-    btnEnviar.style.display = (hayRespuesta && editingId && esBajaMedia) ? 'inline-flex' : 'none';
-  }
-}
-
-function enviarAResponsable() {
-  // Verificar que haya responsable asignado
-  var tieneResp = gestionesData.some(function(g){
-    return g.responsable_email && g.responsable_email.trim();
-  });
-  if (!tieneResp) { alert('Primero asigná un responsable en la gestión.'); return; }
-  if (!confirm('¿Enviar notificación al responsable?')) return;
-  // Cambiar estado a "Derivado a Responsable"
-  var fEstado = document.getElementById('f-estado');
-  if (fEstado) fEstado.value = 'Derivado a Responsable';
-  // Guardar y enviar notificación
-  saveCase();
 }
 
 
@@ -2124,7 +2274,7 @@ function renderSACasos() {
     var saRowFn = function(d) {
       return '<tr style="border-bottom:1px solid var(--border)">' +
         '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
-        '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'<br>'+(d.origen==='formulario_publico'?'<span title="QR" style="font-size:0.65rem;color:#7c3aed">📱 QR</span>':'<span style="font-size:0.65rem;color:#6b7280">🖥 Gestión</span>')+'</td>' +
+        '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.apellido||'')+' '+(d.nombre||'')+'</td>' +
@@ -2146,6 +2296,98 @@ function renderSACasos() {
       '<div style="background:#f0fdf4;border-radius:10px 10px 0 0;padding:8px 16px;font-size:0.78rem;font-weight:700;color:#065f46;border:1px solid #bbf7d0;border-bottom:none">⚙️ Casos en Gestión <span style="background:#065f46;color:white;border-radius:20px;padding:1px 8px;font-size:0.72rem;margin-left:6px">'+saGestion.length+'</span></div><table style="width:100%;border-collapse:collapse;font-size:0.82rem"><thead><tr style="background:var(--green-light)">'+thSA+saGestion.map(saRowFn).join('')+'</tbody></table>' : '<p style="text-align:center;color:var(--text-muted);padding:24px">No hay casos en gestión</p>';
     return sNuevos + sGestion;
     })();
+}
+
+
+var editingUserId = null;
+
+function renderUsuarios() {
+  var grid = document.getElementById('usuarios-list') || document.getElementById('usuarios-grid');
+  if (!grid) return;
+  var users = getAdminUsers();
+  var fRol = (document.getElementById('sa-filter-rol')||{}).value || '';
+  var fBuscar = ((document.getElementById('sa-filter-usuario-buscar')||{}).value||'').toLowerCase();
+  var filtered = users.filter(function(u) {
+    if (fRol && u.rol !== fRol) return false;
+    if (fBuscar && !(u.nombre||'').toLowerCase().includes(fBuscar) && !(u.email||'').toLowerCase().includes(fBuscar)) return false;
+    return true;
+  });
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted)">No se encontraron usuarios</div>';
+    return;
+  }
+  var rolLabel = {superadmin:'Super Admin',admin_full:'Admin Full',admin:'Gestor',readonly:'Solo Lectura',responsable:'Responsable',direccion:'Dirección'};
+  grid.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + filtered.map(function(u) {
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
+      '<div>' +
+        '<div style="font-weight:600;font-size:0.9rem">' + (u.nombre||'') + ' ' + (u.apellido||'') + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted)">' + (u.email||'') + ' · ' + (rolLabel[u.rol]||u.rol||'') + '</div>' +
+        (u.mail_recuperacion ? '<div style="font-size:0.72rem;color:var(--text-muted)">✉️ ' + u.mail_recuperacion + '</div>' : '') +
+      '</div>' +
+      '<button class="btn btn-outline" style="font-size:0.78rem;padding:5px 12px" data-uid="' + (u.email||'') + '" onclick="openUserModal(this.dataset.uid)">✏️ Editar</button>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function openUserModal(email) {
+  editingUserId = email || null;
+  var users = getAdminUsers();
+  var u = email ? users.find(function(x){ return x.email === email; }) : null;
+  document.getElementById('user-modal-title').textContent = u ? 'Editar Usuario' : 'Nuevo Usuario';
+  document.getElementById('u-nombre').value = u ? (u.nombre||'') : '';
+  document.getElementById('u-apellido').value = u ? (u.apellido||'') : '';
+  var emailEl = document.getElementById('u-email');
+  emailEl.value = u ? u.email : '';
+  emailEl.disabled = !!u;
+  document.getElementById('u-mail-recuperacion').value = u ? (u.mail_recuperacion||'') : '';
+  document.getElementById('u-pass').value = u ? (u.password||'1234') : '1234';
+  document.getElementById('u-rol').value = u ? (u.rol||'admin') : 'admin';
+  var sectorEl = document.getElementById('u-sector');
+  if (sectorEl) sectorEl.value = u ? (u.sector||'') : '';
+  toggleSectorField();
+  var btnDel = document.getElementById('btn-delete-user');
+  if (btnDel) btnDel.style.display = u ? 'inline-flex' : 'none';
+  var um = document.getElementById('user-modal');
+  if (um) { um.style.display = 'flex'; um.classList.add('active'); }
+}
+
+function closeUserModal() {
+  var um = document.getElementById('user-modal');
+  if (um) { um.classList.remove('active'); um.style.display = ''; }
+  editingUserId = null;
+}
+
+function toggleSectorField() {
+  var rol = (document.getElementById('u-rol')||{}).value || '';
+  var campo = document.getElementById('campo-sector');
+  if (campo) campo.style.display = (rol === 'responsable') ? 'flex' : 'none';
+}
+
+function saveUser() {
+  var email = (document.getElementById('u-email')||{}).value.trim();
+  var nombre = (document.getElementById('u-nombre')||{}).value.trim();
+  var apellido = (document.getElementById('u-apellido')||{}).value.trim();
+  var pass = (document.getElementById('u-pass')||{}).value.trim();
+  var rol = (document.getElementById('u-rol')||{}).value;
+  var mailRec = (document.getElementById('u-mail-recuperacion')||{}).value.trim();
+  var sector = (document.getElementById('u-sector')||{}).value.trim();
+  if (!email || !nombre || !pass) { alert('Completá los campos obligatorios.'); return; }
+  var user = { email:email, nombre:nombre, apellido:apellido, password:pass, rol:rol, mail_recuperacion:mailRec, sector:sector };
+  db.collection('usuarios').doc(email).set(user).then(function(){
+    logTrazabilidad(editingUserId ? 'Usuario editado' : 'Usuario creado', email);
+    closeUserModal();
+    renderUsuarios();
+  }).catch(function(e){ alert('Error: ' + e.message); });
+}
+
+function deleteUser() {
+  if (!editingUserId) return;
+  if (!confirm('¿Eliminar el usuario ' + editingUserId + '?')) return;
+  db.collection('usuarios').doc(editingUserId).delete().then(function(){
+    logTrazabilidad('Usuario eliminado', editingUserId);
+    closeUserModal();
+    renderUsuarios();
+  }).catch(function(e){ alert('Error: ' + e.message); });
 }
 
 function renderMenus() {
@@ -2341,7 +2583,6 @@ function renderDireccionView() {
         '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">' + (d.motivo||'—') + '</div>' +
         '<div class="case-relato-label">Relato del hecho</div>' +
         '<div class="case-relato">' + (d.relato||'Sin relato registrado.') + '</div>' +
-        (d.resumen_gestiones ? '<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">' + d.resumen_gestiones + '</div></div>' : '') +
         (d.adjunto_base64 ? '<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="' + d.adjunto_base64 + '" download="' + (d.adjunto_nombre||'adjunto') + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ' + (d.adjunto_nombre||'Descargar archivo') + '</a></div>' : '') +
         respHtml + accionHtml +
         '<div style="margin-top:14px">' +
@@ -2446,7 +2687,6 @@ function renderDireccionView() {
         (d.dni ? '<div style="font-size:0.78rem;color:var(--text-muted)">DNI: ' + d.dni + '</div>' : '') +
         '<div class="case-relato-label" style="margin-top:8px">Relato</div>' +
         '<div class="case-relato">' + (d.relato||'Sin relato.') + '</div>' +
-        (d.resumen_gestiones ? '<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">' + d.resumen_gestiones + '</div></div>' : '') +
         '<div class="case-relato-label" style="margin-top:8px">Responsable Asignado</div>' +
         '<div style="font-size:0.84rem;margin-bottom:4px">' + (d.responsable ? '<strong>' + d.responsable + '</strong>' + (d.responsable_email ? ' <span style="color:var(--text-muted);font-size:0.78rem">· ' + d.responsable_email + '</span>' : '') : '<span style="color:#94a3b8;font-style:italic">Sin responsable asignado</span>') + '</div>' +
         (d.respuesta
@@ -2546,22 +2786,15 @@ function renderUserView() {
     const tipoClass = tipoMap[d.tipo] || 'quejareclamo';
     // Obtener la gestión que corresponde a este responsable
     var miGestion = null;
-    if (d.gestiones && d.gestiones.length > 0) {
-      console.log('[DEBUG] caso #'+d.id+' myEmail:'+myEmail+' gestiones:', d.gestiones.map(function(g){ return {real: g.responsable_email_real, email: g.responsable_email}; }));
-      // Buscar gestión exacta por email_real o email
+    if (d.gestiones) {
       miGestion = d.gestiones.find(function(g){
-        return (g.responsable_email_real||'').toLowerCase() === myEmail ||
-               (g.responsable_email||'').toLowerCase() === myEmail;
-      });
-      console.log('[DEBUG] miGestion encontrada:', miGestion ? 'sí - respuesta:'+miGestion.respuesta : 'no');
-      // Solo fallback a gestión 0 si hay una sola gestión
-      if (!miGestion && d.gestiones.length === 1) miGestion = d.gestiones[0];
+        return (g.responsable_email_real||g.responsable_email||'').toLowerCase() === myEmail;
+      }) || d.gestiones[0];
     }
     var vencGestion = (miGestion && miGestion.vencimiento) || d.vencimiento || '';
     const v = isVencido(vencGestion, d.estado);
-    // Solo leer respuesta/accion de la gestión específica, no del root (evita duplicar entre gestiones)
-    const respGuardada = (miGestion && miGestion.respuesta) || '';
-    const accionGuardada = (miGestion && miGestion.accion) || '';
+    const respGuardada = (miGestion && miGestion.respuesta) || d.respuesta || '';
+    const accionGuardada = (miGestion && miGestion.accion) || d.accion || '';
     const estadoResp = d.estado_respuesta || 'Pendiente';
     return `
     <div class="case-card ${tipoClass}" id="case-card-${d.id}">
@@ -2599,7 +2832,6 @@ function renderUserView() {
         <div class="case-relato-label">Relato del hecho</div>
         <div class="case-relato">${d.relato||'Sin relato registrado.'}</div>
         ` + (d.adjunto_base64 ? `<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="` + d.adjunto_base64 + `" download="` + (d.adjunto_nombre||'adjunto') + `" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ` + (d.adjunto_nombre||'Descargar archivo') + `</a></div>` : '') + `
-        ${d.resumen_gestiones ? `<div style="margin-top:10px"><div class="case-relato-label" style="color:#1e3a8a">🗒️ Resumen de Gestiones</div><div class="case-relato" style="background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a">${d.resumen_gestiones}</div></div>` : ''}
         <div class="case-respuesta">
           ${(d.tipo === 'Felicitación' || d.tipo === 'Sugerencia') ? `
             <!-- Felicitación/Sugerencia: solo lectura, sin campos de respuesta/acción -->
@@ -2672,16 +2904,9 @@ function saveUserResp(id) {
       var gIdx = data[idx].gestiones.findIndex(function(g){
         return (g.responsable_email_real||g.responsable_email||'').toLowerCase() === myEmailReal;
       });
-      if (gIdx === -1) {
-        // No encontró gestión — buscar por email sin real como fallback
-        gIdx = data[idx].gestiones.findIndex(function(g){
-          return (g.responsable_email||'').toLowerCase() === myEmailReal;
-        });
-      }
-      if (gIdx !== -1) {
-        data[idx].gestiones[gIdx].respuesta = respuesta;
-        data[idx].gestiones[gIdx].accion = accion;
-      }
+      if (gIdx === -1) gIdx = 0; // fallback a primera gestión
+      data[idx].gestiones[gIdx].respuesta = respuesta;
+      data[idx].gestiones[gIdx].accion = accion;
     }
     // Si hay respuesta o acción → cambiar estado del caso a "Respuesta del Responsable"
     const nuevoEstado = (respuesta.trim() || accion.trim()) ? 'Respuesta enviada' : 'Pendiente';
@@ -3178,7 +3403,7 @@ function renderTabla() {
     const accionEsc = (d.accion||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     return `<tr class="caso-row" onclick="toggleDetalle(${d.id})" style="cursor:pointer">
       <td style="font-size:0.78rem"><strong>#${d.id}</strong></td>
-      <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}${d.origen==='formulario_publico'?'<br><span title="QR" style="font-size:0.62rem;color:#7c3aed">📱 QR</span>':'<br><span style="font-size:0.62rem;color:#9ca3af">🖥</span>'}</td>
+      <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}</td>
       <td style="font-size:0.74rem"><strong>${d.sede||'—'}</strong><br><span style="color:var(--text-muted);font-size:0.68rem">${d.servicio||''}</span></td>
       <td><span class="${getBadgeClass(d.tipo)}" style="font-size:0.65rem;padding:2px 5px">${(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')}</span></td>
       <td style="font-size:0.76rem">${d.apellido||''}<br><span style="color:var(--text-muted);font-size:0.7rem">${d.nombre||''}</span></td>
@@ -3340,7 +3565,7 @@ function toggleCerrarCaso() {
   var crit = document.getElementById('f-criticidad').value;
   var tipo = document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '';
   var btn = document.getElementById('btn-cerrar-caso');
-  if (!btn) return; // botón removido del footer
+  if (!btn) return;
   var rol = currentUser ? currentUser.rol : '';
   var esAlta = (crit === 'Alta' || crit === 'Crítica' || crit === 'Evento Crítico');
   var esBajaMedia = (crit === 'Baja' || crit === 'Media');
@@ -3406,20 +3631,6 @@ function updateBtnEnviarRespuesta() {
 }
 
 function enviarRespuestaPresentanteManual() {
-  // Después de enviar, cerrar caso para Baja/Media
-  var _afterSend = function() {
-    var crit = editingId ? (data.find(function(x){return x.id===editingId;})||{}).criticidad||'' : '';
-    var esBajaMedia = crit === 'Baja' || crit === 'Media';
-    if (esBajaMedia && editingId) {
-      var idx = data.findIndex(function(x){return x.id===editingId;});
-      if (idx !== -1) {
-        data[idx].estado = 'Cerrado';
-        if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
-        saveCaso(data[idx]);
-        updateModalEstado();
-      }
-    }
-  };
   var crit = document.getElementById('f-criticidad').value;
   if (crit !== 'Baja' && crit !== 'Media') { alert('Solo disponible para criticidad Baja o Media.'); return; }
   // Leer mail del objeto data (el campo puede estar deshabilitado)
@@ -3434,7 +3645,7 @@ function enviarRespuestaPresentanteManual() {
   var sede   = caso ? caso.sede   : document.getElementById('f-sede').value;
   if (!emailjsReady) { alert('EmailJS no está listo.'); return; }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA_ADMIN, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA, {
     to_email:  mail,
     to_name:   nombre || 'Presentante',
     caso_id:   editingId || '—',
@@ -3442,12 +3653,11 @@ function enviarRespuestaPresentanteManual() {
     caso_sede: sede,
     caso_crit: caso ? (caso.criticidad || '—') : '—',
     paciente:  nombre || 'Presentante',
-    app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
+    app_url:   'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html',
     message:   resp,
   }).then(function() {
     alert('✅ Respuesta enviada correctamente a ' + mail);
     logTrazabilidad('Respuesta enviada al presentante', 'Caso #'+(editingId||'—')+' → '+mail);
-    if (typeof _afterSend === 'function') _afterSend();
     // Notificar al responsable que el caso fue cerrado
     if (emailjsReady && caso && caso.responsable_email) {
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
@@ -3458,7 +3668,7 @@ function enviarRespuestaPresentanteManual() {
         caso_sede: caso.sede,
         caso_crit: caso.criticidad || '—',
         paciente:  `${caso.apellido||''} ${caso.nombre||''}`,
-        app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
+        app_url:   'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html',
         message:   `Se informó al paciente la siguiente respuesta:\n\n"${resp}"\n\nEl caso #${caso.id} ha sido marcado como CERRADO.`
       }).catch(err => console.warn('Notif responsable cierre:', err));
     }
@@ -3558,7 +3768,6 @@ function toggleComentarioDir() {
   // Botones: ocultar para Alta y Crítica
   var btnEnviar = document.getElementById('btn-enviar-respuesta');
   var btnCerrar = document.getElementById('btn-cerrar-caso');
-  if (!btnCerrar) { closeModal(); return; }
   if (esAltaOCritico) {
     if (btnEnviar) btnEnviar.style.display = 'none';
     if (btnCerrar) btnCerrar.style.display = 'none';
@@ -3878,18 +4087,10 @@ function cerrarCaso() {
     if (obsAdmin) data[idx].obs_admin = obsAdmin;
     data[idx].estado = 'Cerrado';
     if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
-    // Merge gestionesData (editado en el modal) en data[idx] antes de notificar
-    if (gestionesData && gestionesData.length > 0) {
-      data[idx].gestiones = gestionesData.map(function(g){ return Object.assign({}, g); });
-      // Actualizar también campos legacy en root
-      var g0 = gestionesData[0];
-      if (g0.responsable_email_real) data[idx].responsable_email_real = g0.responsable_email_real;
-      if (g0.responsable_email) data[idx].responsable_email = g0.responsable_email;
-      if (g0.responsable) data[idx].responsable = g0.responsable;
-    }
-    data[idx].id = editingId;
     saveCaso(data[idx]);
     // Enviar respuesta al presentante si tiene mail y respuesta
+    // Para Felicitación/Sugerencia es optativo (solo si hay texto en obs_admin)
+    // Para Reclamo es requerido (ya validado antes)
     if (obsAdmin && data[idx].mail_presentante) {
       sendRespuestaPresentante(data[idx]);
     }
@@ -4008,7 +4209,7 @@ function openModal(id) {
   editingId = id || null;
   document.getElementById('modal-title').textContent = id ? '✏️ Editar Caso' : '🗃️ Nuevo Caso'; // se actualiza abajo
   // Visibilidad de "Cerrar caso" se actualiza despues de cargar gestiones (syncLegacyFields)
-  var _btnCerrar = document.getElementById('btn-cerrar-caso'); if (_btnCerrar) _btnCerrar.style.display = 'none';
+  document.getElementById('btn-cerrar-caso').style.display = 'none';
   const btnCerrar2 = document.getElementById('btn-cerrar-caso-2');
   if (btnCerrar2) btnCerrar2.style.display = 'none';
   // Botón enviar respuesta: solo visible al editar, activo solo si criticidad Baja o Media
@@ -4021,6 +4222,7 @@ function openModal(id) {
   const nowTime = new Date().toTimeString().slice(0,5);
   const d = id ? data.find(x => x.id===id) : null;
   const v = k => d ? (d[k]||'') : '';
+  var tipo_modal = d ? (d.tipo||'') : (document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '');
   var esCerrado = d && d.estado === 'Cerrado';
   document.getElementById('modal-title').textContent = esCerrado ? '🔒 Caso Cerrado' : (id ? '✏️ Editar Caso' : '🗃️ Nuevo Caso');
   document.getElementById('f-fecha').value      = d ? (d.fecha||today)    : today;
@@ -4057,25 +4259,16 @@ function openModal(id) {
     checkObsAdmin();
     toggleComentarioDir();
     toggleCerrarCaso();
-    updateModalEstado();
-    // Controlar botón Guardar DESPUÉS de que f-tipo tiene su valor
-    var tipoActualModal = document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '';
-    var esFelSugNow = (tipoActualModal === 'Felicitación' || tipoActualModal === 'Sugerencia');
-    var esCerradoNow = (document.getElementById('f-estado') ? document.getElementById('f-estado').value : '') === 'Cerrado';
-    var btnG = document.getElementById('btn-guardar-modal');
-    var badgeC = document.getElementById('badge-caso-cerrado-modal');
-    if (btnG) btnG.style.display = (esFelSugNow || esCerradoNow) ? 'none' : '';
-    if (badgeC) badgeC.style.display = esCerradoNow ? 'inline-block' : 'none';
   }, 80);
   // Ahora que las gestiones estan cargadas, actualizar btn cerrar caso
   if (id) {
     var critAfter = document.getElementById('f-criticidad').value;
-    // btn-cerrar-caso removido del footer
+    var btnCerrarFinal = document.getElementById('btn-cerrar-caso');
+    if (btnCerrarFinal) btnCerrarFinal.style.display = (critAfter === 'Alta' || critAfter === 'Critica') ? 'inline-flex' : 'none';
     var btnCerrar2Final = document.getElementById('btn-cerrar-caso-2');
     if (btnCerrar2Final) btnCerrar2Final.style.display = (critAfter === 'Alta' || critAfter === 'Critica') ? 'inline-flex' : 'none';
   }
-  // Gestionar footer según tipo y estado — leer tipo DESPUÉS de que f-tipo fue seteado
-  var tipo_modal = d ? (d.tipo||'') : (document.getElementById('f-tipo') ? document.getElementById('f-tipo').value : '');
+  // Gestionar footer según tipo y estado
   var badgeCerrado = document.getElementById('badge-caso-cerrado-modal');
   var btnGuardarM3 = document.getElementById('btn-guardar-modal');
   var esFelSugModal = (tipo_modal === 'Felicitación' || tipo_modal === 'Sugerencia');
@@ -4237,7 +4430,6 @@ function openModal(id) {
   }
 }
 function closeModal() {
-  var _mo = document.getElementById('modal-overlay');
   document.getElementById('modal-overlay').classList.remove('active');
   editingId = null;
   lockFields(false);
@@ -4328,7 +4520,7 @@ function sendCopiaResumen(nc, copiaEmails, gestIdx) {
       caso_id:      'N° de Gestión: ' + nc.id,
       caso_tipo:    nc.tipo || '',
       caso_sede:    sede,
-      caso_crit:    (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g0.criticidad || ''),
+      caso_crit:    g0.criticidad || '',
       caso_paciente:(nc.apellido||'')+' '+(nc.nombre||''),
       message:      resumen,
     }).then(function(){
@@ -4427,15 +4619,12 @@ function saveCase() {
         nc.estado = 'Cerrado';
         if (!nc.fecha_cierre) nc.fecha_cierre = casoAnterior.fecha_cierre || new Date().toISOString().split('T')[0];
       } else if (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') {
-        nc.estado = casoAnterior.estado || 'Pendiente';
+        // Felicitación/Sugerencia: no requieren respuesta del responsable
+        nc.estado = nc.responsable_email ? 'Pendiente' : casoAnterior.estado || 'Pendiente';
+      } else if (nc.responsable_email && nc.responsable_email.trim()) {
+        nc.estado = 'Derivado a Responsable';
       } else {
-        // Respetar el estado que viene de f-estado (puede haber sido seteado por enviarAResponsable)
-        var fEstadoVal = document.getElementById('f-estado') ? document.getElementById('f-estado').value : '';
-        if (fEstadoVal && fEstadoVal !== casoAnterior.estado) {
-          nc.estado = fEstadoVal;
-        } else {
-          nc.estado = casoAnterior.estado || 'Pendiente';
-        }
+        nc.estado = casoAnterior.estado || 'Pendiente';
       }
       data[idx]={...data[idx],...nc};
       // Asignar gestor si no estaba asignado (al tomar un caso nuevo)
@@ -4478,18 +4667,7 @@ function saveCase() {
       var notifEnviada = false;
       if (responableCambio || gestionEmailNueva) {
         if (!nc.id) nc.id = editingId;
-        // Solo notificar gestiones NUEVAS (email que no existía en casoAnterior)
-        var ncParaNotif = Object.assign({}, nc);
-        ncParaNotif.gestiones = (nc.gestiones||[]).filter(function(g, gi) {
-          var emailNuevo = (g.responsable_email_real||g.responsable_email||'').toLowerCase();
-          if (!emailNuevo || !emailNuevo.includes('@')) return false;
-          var gAnterior = casoAnterior.gestiones && casoAnterior.gestiones[gi];
-          var emailAnterior = gAnterior ? (gAnterior.responsable_email_real||gAnterior.responsable_email||'').toLowerCase() : '';
-          return emailNuevo !== emailAnterior;
-        });
-        if (ncParaNotif.gestiones.length > 0) {
-          sendNotificationEmails(ncParaNotif);
-        }
+        sendNotificationEmails(nc);
         notifEnviada = true;
       }
       // Si cambió la criticidad a Crítica → enviar alerta (solo si no se envió ya)
@@ -4506,12 +4684,10 @@ function saveCase() {
     if (estadoForzado === 'Cerrado') {
       nc.estado = 'Cerrado';
       if (!nc.fecha_cierre) nc.fecha_cierre = new Date().toISOString().split('T')[0];
-    } else if (estadoForzado === 'Derivado a Responsable') {
-      nc.estado = 'Derivado a Responsable';
     } else if (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') {
       nc.estado = 'Pendiente';
     } else {
-      nc.estado = 'Pendiente';
+      nc.estado = nc.responsable_email ? 'Derivado a Responsable' : 'Pendiente';
     }
     // Capturar copias del DOM ANTES del async (el modal se cierra antes del .then)
     var _copiasPorGestion = gestionesData.map(function(g, gi) {
@@ -4575,9 +4751,8 @@ var EMAILJS_SERVICE_ID        = 'service_e44ykfo';
 var EMAILJS_TEMPLATE_ID       = 'template_6vwexef';   // notif responsable normal
 var EMAILJS_TEMPLATE_RECUPERAR = 'template_f981g9v';  // recuperación de contraseña
 var EMAILJS_TEMPLATE_CRITICO  = 'template_cw7ifbb';   // notif crítico
-var EMAILJS_TEMPLATE_CONFIRM       = 'template_n6t2u5q';  // confirmación automática al presentante
-var EMAILJS_TEMPLATE_RESPUESTA_ADMIN = 'template_v0xc46f';   // respuesta manual admin → presentante
-var EMAILJS_TEMPLATE_RESPUESTA       = 'template_le6zo3n';   // copia interna
+var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación al presentante ← reemplazar
+var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// respuesta al presentante ← reemplazar
 var emailjsReady = false;
 try {
   if (EMAILJS_PUBLIC_KEY !== 'TU_PUBLIC_KEY') {
@@ -4644,7 +4819,7 @@ function sendRespuestaPresentante(nc) {
   if (!nc.obs_admin || !nc.obs_admin.trim()) return;
   // Aplica para todas las criticidades que correspondan
   if (!emailjsReady) return;
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA_ADMIN, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
     to_email:  nc.mail_presentante.trim(),
     to_name:   ((nc.apellido||'') + ' ' + (nc.nombre||'')).trim() || 'Presentante',
     caso_id:   nc.id,
@@ -4655,7 +4830,7 @@ function sendRespuestaPresentante(nc) {
 function sendNotificationEmails(nc) {
 
   if (!emailjsReady) { console.warn('[NOTIF] emailjsReady=false, abortando'); return; }
-  const appUrl = 'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html';
+  const appUrl = 'https://csalgado-ui.github.io/Quejas-Cemic/tablero_quejas.html';
 
   // Notificar a cada gestión
   var gestiones = nc.gestiones && nc.gestiones.length > 0 ? nc.gestiones : [nc];
@@ -4681,7 +4856,7 @@ function sendNotificationEmails(nc) {
       caso_id:   'N° de Gestión: ' + nc.id,
       caso_tipo: nc.tipo,
       caso_sede: g.sede || nc.sede,
-      caso_crit: (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g.criticidad || ''),
+      caso_crit: g.criticidad,
       paciente:  `${nc.apellido} ${nc.nombre}`,
       app_url:   appUrl,
       message:   mensajeResp
@@ -4694,7 +4869,7 @@ function sendNotificationEmails(nc) {
         to_email: emailDir,
         to_name: (g.sede||nc.sede) === 'Saavedra' ? 'Dirección Saavedra' : 'Dirección',
         caso_id: nc.id, caso_tipo: nc.tipo, caso_sede: g.sede||nc.sede,
-        caso_crit: (nc.tipo === 'Felicitación' || nc.tipo === 'Sugerencia') ? 'No corresponde' : (g.criticidad || ''), paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
+        caso_crit: g.criticidad, paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
         message: `⚠️ CASO ${(g.criticidad||'').toUpperCase()}: caso en sede ${g.sede||nc.sede}. Requiere atencion.`
       }).catch(function(err){ console.warn('EmailJS dir:', err); });
     }
@@ -4859,223 +5034,5 @@ if (currentUser) {
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <div class="modal-title" id="modal-title">Nuevo Caso</div>
-    <div class="form-grid">
-
-      <div class="locked-banner" id="locked-banner">🔒 Los datos del presentante, sede y tipo no pueden modificarse una vez guardado el caso.</div>
-      <div class="form-section-divider" id="section-fecha-lugar"><span>📅 Fecha y Lugar</span></div>
-      <div class="form-group"><label>Fecha de Ingreso <span class="req">*</span></label><input type="date" id="f-fecha"></div>
-      <div class="form-group"><label>Hora de Ingreso <span class="req">*</span></label><input type="time" id="f-hora"></div>
-      <!-- Sede y Servicio hidden - se carga desde gestiones -->
-      <input type="hidden" id="f-sede" value="">
-      <input type="hidden" id="f-servicio" value="">
-      <input type="hidden" id="f-servicio-texto" value="">
-
-      <div class="form-section-divider"><span>👤 Datos del Presentante</span></div>
-      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="f-apellido" placeholder="García"></div>
-      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="f-nombre" placeholder="María"></div>
-      <div class="form-group"><label>DNI <span class="req">*</span></label><input type="text" id="f-dni" placeholder="12345678"></div>
-      <div class="form-group"><label>Mail del Presentante <span class="req">*</span></label><input type="email" id="f-mail-presentante" placeholder="mail@ejemplo.com"></div>
-      <div class="form-group"><label>Teléfono</label><input type="text" id="f-telefono" placeholder="11-1234-5678"></div>
-
-
-      <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
-      <div class="form-group full" id="campo-adjunto" style="display:none">
-        <label>📎 Adjuntar Archivos (hasta 3)</label>
-        <div id="adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
-        <div style="margin-top:8px">
-          <label id="btn-agregar-adjunto" style="background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:inline-flex;align-items:center;gap:6px">
-            📁 Agregar archivo
-            <input type="file" id="f-adjunto" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleAdjunto(this)">
-          </label>
-          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:10px">PDF, JPG, PNG · Máx. 5MB por archivo · Hasta 3 archivos</span>
-        </div>
-      </div>
-      <div class="form-group full"><label>Relato del Hecho</label><textarea id="f-relato" placeholder="Descripción del caso..."></textarea></div>
-
-      <div class="form-section-divider"><span>📌 Tipo y Clasificación</span></div>
-      <div class="form-group">
-        <label>Presentación <span class="req">*</span></label>
-        <select id="f-tipo" onchange="toggleComentarioDir(); updateMotivoAdmin(); renderGestiones(); toggleCerrarCaso(); toggleBloquesFelicitacion(); toggleGuardarBtn()"><option>Queja / Reclamo</option><option>Sugerencia</option><option>Felicitación</option></select>
-      </div>
-
-      <!-- Tipo de Reclamo y Motivo — solo para Queja/Reclamo -->
-      <div id="bloque-tipo-reclamo" style="display:none;grid-column:1/-1">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
-          <div class="form-group">
-            <label>Tipo de Reclamo</label>
-            <select id="f-tipo-reclamo" onchange="onTipoReclamoChange()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-              <option value="">Seleccioná...</option>
-              <option>Reclamo Medico</option>
-              <option>Reclamo Administrativo</option>
-              <option>Reclamo Enfermería</option>
-              <option>Reclamo Técnico</option>
-              <option>Reclamo de Infraestructura</option>
-              <option>Reclamo Maestranza</option>
-              <option>Reclamo Sistemas/Soporte</option>
-              <option>Comunicación</option>
-              <option>Alimentación</option>
-              <option>Turnos</option>
-              <option>Seguridad/Vigilancia</option>
-              <option>Bioingeniería</option>
-              <option>Reclamo Resultado</option>
-              <option>General/Otros</option>
-              <option>Prepago</option>
-</select>
-          </div>
-          <div class="form-group">
-            <label>Motivo del Reclamo</label>
-            <select id="f-motivo-reclamo" onchange="toggleMotivoOtroReclamo(); syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-              <option value="">— primero elegí tipo —</option>
-            </select>
-          </div>
-        </div>
-        <div id="bloque-motivo-otro-reclamo" style="display:none;margin-top:8px">
-          <div class="form-group">
-            <label>Especificá el motivo</label>
-            <input type="text" id="f-motivo-reclamo-otro" placeholder="Describí el motivo..." oninput="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-          </div>
-        </div>
-        <div class="form-group" id="bloque-servicio-medico" style="display:none;margin-top:8px">
-          <label>Servicio / Departamento</label>
-          <select id="f-servicio-medico" onchange="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-            <option value="">Seleccioná servicio...</option>
-            <option>Anatomía Patológica</option>
-            <option>Cirugía</option>
-            <option>Clínica Médica y Especialidades Clínicas</option>
-            <option>Emergencias</option>
-            <option>Gastroenterología</option>
-            <option>Ginecología y Obstetricia</option>
-            <option>Hemodinamia</option>
-            <option>Hospital de Día Oncológico</option>
-            <option>Imágenes</option>
-            <option>Neonatología</option>
-            <option>Pediatría</option>
-            <option>Radioterapia</option>
-            <option>Rehabilitación (Terapia Física, T. Ocupacional, Fono)</option>
-            <option>Terapia Intensiva</option>
-            <option>Traumatología</option>
-            <option>Unidad Coronaria</option>
-            <option>UTI Pediátrica</option>
-          </select>
-        </div>
-      </div>
-      <!-- Tipo de Felicitación — solo visible para Felicitación -->
-      <div class="form-group" id="bloque-tipo-felicitacion" style="display:none">
-        <label>Tipo de Felicitación</label>
-        <select id="f-tipo-felicitacion" onchange="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-          <option value="">Seleccioná...</option>
-          <option>Calidad de Atención Médica</option>
-          <option>Calidad de Atención Administrativa</option>
-          <option>Calidad de Atención Enfermería</option>
-          <option>Calidad de Atención Técnica</option>
-          <option>Calidad de Atención General</option>
-          <option>Puntualidad en la Atención Médica</option>
-          <option>Puntualidad en la Atención Administrativa</option>
-          <option>Instalaciones</option>
-          <option>General</option>
-          <option>Otros</option>
-        </select>
-        <div id="bloque-tipo-fel-otro" style="display:none;margin-top:8px">
-          <input type="text" id="f-tipo-felicitacion-otro" placeholder="Especificá el tipo de felicitación..." oninput="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-        </div>
-      </div>
-      <!-- Motivo hidden - se carga desde gestiones -->
-      <input type="hidden" id="f-motivo" value="">
-      <div style="display:none" id="campo-motivo-admin"></div>
-      <div class="form-section-divider" id="section-gestion"><span>⚙️ Gestión y Seguimiento</span></div>
-
-      <!-- GESTIONES MÚLTIPLES -->
-      <div id="gestiones-container" class="full" style="grid-column:1/-1"></div>
-      <!-- Botón agregar como barra -->
-      <div class="full" style="grid-column:1/-1;border:2px dashed var(--border);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px">
-        <button type="button" class="btn btn-outline" onclick="agregarGestion()" style="font-size:0.85rem;padding:8px 20px;width:100%">⊕ Agregar Gestión y Seguimiento</button>
-      </div>
-      <!-- Enviar en copia -->
-      <div class="full" id="campo-copia-mail" style="grid-column:1/-1;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;background:#f8fafc;display:none">
-        <!-- Modo nuevo caso: checkbox + campos editables -->
-        <div id="copia-modo-nuevo">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--green-dark)">
-            <input type="checkbox" id="chk-enviar-copia" onchange="toggleCopiaMailUI()" style="width:16px;height:16px;accent-color:var(--green-main)">
-            📤 Enviar caso en copia a otros destinatarios
-          </label>
-          <div id="copia-mail-fields" style="display:none;margin-top:12px">
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">Hasta 3 direcciones de correo. Recibirán un resumen con datos del paciente, relato y adjuntos.</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;gap:8px;align-items:center">
-                <input type="email" id="copia-mail-1" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-1').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-2">
-                <input type="email" id="copia-mail-2" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-2').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-3">
-                <input type="email" id="copia-mail-3" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-3').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <button type="button" id="btn-agregar-copia" onclick="agregarCampoCopia()" style="align-self:flex-start;background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 14px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">+ Agregar otro mail</button>
-            </div>
-          </div>
-        </div>
-        <!-- Modo edición: mails guardados readonly -->
-        <div id="copia-modo-readonly" style="display:none">
-          <div style="font-size:0.78rem;font-weight:600;color:var(--green-dark);margin-bottom:6px">📤 Enviado en copia a</div>
-          <div id="copia-readonly-lista"></div>
-        </div>
-      </div>
-
-      <!-- Hidden legacy inputs for backward compat -->
-      <input type="hidden" id="f-criticidad" value="Baja">
-      <input type="hidden" id="f-responsable" value="">
-      <input type="hidden" id="f-responsable-email" value="">
-      <input type="hidden" id="f-responsable-login" value="">
-      <input type="hidden" id="f-estado" value="Pendiente">
-      <input type="hidden" id="f-vencimiento" value="">
-      <!-- f-respuesta y f-accion se mantienen como hidden para compat con saveCase -->
-      <input type="hidden" id="f-respuesta" value="">
-      <input type="hidden" id="f-accion" value="">
-
-      <div class="form-group full" id="campo-comentario-dir" style="display:none"><label>💼 Comentario Dirección</label><textarea id="f-comentario-dir" placeholder="Cargado por Dirección..." style="min-height:60px;background:#f0f5ff;color:var(--text-muted);cursor:not-allowed;border-color:#c7d7f5" readonly></textarea></div>
-      <div class="form-group full"><label>📋 Respuesta al Paciente</label><textarea id="f-obs-admin" placeholder="Respuesta enviada al paciente..." style="min-height:60px;background:#fefce8;border-color:#fde68a" oninput="checkObsAdmin(); updateBtnEnviarRespuesta()"></textarea></div>
-      <div class="form-group full">
-        <label style="display:flex;align-items:center;justify-content:space-between">
-          <span>🗒️ Resumen de Gestiones</span>
-          <button type="button" onclick="guardarResumenGestiones()" title="Guardar resumen" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.8rem;color:var(--green-dark)">💾 Guardar</button>
-        </label>
-        <textarea id="f-resumen-gestiones" placeholder="Notas internas / resumen de la gestión del caso..." style="min-height:60px"></textarea>
-        <div id="resumen-saved-msg" style="display:none;font-size:0.72rem;color:#065f46;margin-top:3px">✅ Guardado</div>
-      </div>
-      <div class="form-group" id="campo-fecha-cierre" style="display:none">
-        <label>📅 Fecha de Cierre</label>
-        <input type="date" id="f-fecha-cierre" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px">Se completa automáticamente al cerrar el caso</div>
-      </div>
-    </div>
-    <div id="modal-validation-msg">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
-    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-        <!-- Estado del caso -->
-        <span id="modal-estado-badge" style="padding:5px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;background:#f3f4f6;color:#374151"></span>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <!-- Enviar a responsable: visible cuando hay gestión con responsable -->
-        <button class="btn btn-outline" id="btn-enviar-responsable" onclick="enviarAResponsable()" style="display:none;border-color:#1e7a44;color:#1e7a44">
-          📨 Enviar a responsable
-        </button>
-        <!-- Enviar respuesta al presentante: activo cuando hay respuesta del responsable -->
-        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none">
-          📧 Enviar respuesta al presentante
-        </button>
-        <!-- btn-cerrar-caso removido del footer — el cierre ocurre al enviar respuesta al presentante -->
-        <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
-        <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
 </body>
 </html>
