@@ -923,225 +923,9 @@
 
   </div><!-- /tab-casos -->
 
+
 </main>
-<div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
-    <div class="modal-title" id="modal-title">Nuevo Caso</div>
-    <div class="form-grid">
 
-      <div class="locked-banner" id="locked-banner">🔒 Los datos del presentante, sede y tipo no pueden modificarse una vez guardado el caso.</div>
-      <div class="form-section-divider" id="section-fecha-lugar"><span>📅 Fecha y Lugar</span></div>
-      <div class="form-group"><label>Fecha de Ingreso <span class="req">*</span></label><input type="date" id="f-fecha"></div>
-      <div class="form-group"><label>Hora de Ingreso <span class="req">*</span></label><input type="time" id="f-hora"></div>
-      <!-- Sede y Servicio hidden - se carga desde gestiones -->
-      <input type="hidden" id="f-sede" value="">
-      <input type="hidden" id="f-servicio" value="">
-      <input type="hidden" id="f-servicio-texto" value="">
-
-      <div class="form-section-divider"><span>👤 Datos del Presentante</span></div>
-      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="f-apellido" placeholder="García"></div>
-      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="f-nombre" placeholder="María"></div>
-      <div class="form-group"><label>DNI <span class="req">*</span></label><input type="text" id="f-dni" placeholder="12345678"></div>
-      <div class="form-group"><label>Mail del Presentante <span class="req">*</span></label><input type="email" id="f-mail-presentante" placeholder="mail@ejemplo.com"></div>
-      <div class="form-group"><label>Teléfono</label><input type="text" id="f-telefono" placeholder="11-1234-5678"></div>
-
-
-      <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
-      <div class="form-group full" id="campo-adjunto" style="display:none">
-        <label>📎 Adjuntar Archivos (hasta 3)</label>
-        <div id="adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
-        <div style="margin-top:8px">
-          <label id="btn-agregar-adjunto" style="background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:inline-flex;align-items:center;gap:6px">
-            📁 Agregar archivo
-            <input type="file" id="f-adjunto" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleAdjunto(this)">
-          </label>
-          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:10px">PDF, JPG, PNG · Máx. 5MB por archivo · Hasta 3 archivos</span>
-        </div>
-      </div>
-      <div class="form-group full"><label>Relato del Hecho</label><textarea id="f-relato" placeholder="Descripción del caso..."></textarea></div>
-
-      <div class="form-section-divider"><span>📌 Tipo y Clasificación</span></div>
-      <div class="form-group">
-        <label>Presentación <span class="req">*</span></label>
-        <select id="f-tipo" onchange="toggleComentarioDir(); updateMotivoAdmin(); renderGestiones(); toggleCerrarCaso(); toggleBloquesFelicitacion(); toggleGuardarBtn()"><option>Queja / Reclamo</option><option>Sugerencia</option><option>Felicitación</option></select>
-      </div>
-
-      <!-- Tipo de Reclamo y Motivo — solo para Queja/Reclamo -->
-      <div id="bloque-tipo-reclamo" style="display:none;grid-column:1/-1">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
-          <div class="form-group">
-            <label>Tipo de Reclamo</label>
-            <select id="f-tipo-reclamo" onchange="onTipoReclamoChange()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-              <option value="">Seleccioná...</option>
-              <option>Reclamo Medico</option>
-              <option>Reclamo Administrativo</option>
-              <option>Reclamo Enfermería</option>
-              <option>Reclamo Técnico</option>
-              <option>Reclamo de Infraestructura</option>
-              <option>Reclamo Maestranza</option>
-              <option>Reclamo Sistemas/Soporte</option>
-              <option>Comunicación</option>
-              <option>Alimentación</option>
-              <option>Turnos</option>
-              <option>Seguridad/Vigilancia</option>
-              <option>Bioingeniería</option>
-              <option>Reclamo Resultado</option>
-              <option>General/Otros</option>
-              <option>Prepago</option>
-</select>
-          </div>
-          <div class="form-group">
-            <label>Motivo del Reclamo</label>
-            <select id="f-motivo-reclamo" onchange="toggleMotivoOtroReclamo(); syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-              <option value="">— primero elegí tipo —</option>
-            </select>
-          </div>
-        </div>
-        <div id="bloque-motivo-otro-reclamo" style="display:none;margin-top:8px">
-          <div class="form-group">
-            <label>Especificá el motivo</label>
-            <input type="text" id="f-motivo-reclamo-otro" placeholder="Describí el motivo..." oninput="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-          </div>
-        </div>
-        <div class="form-group" id="bloque-servicio-medico" style="display:none;margin-top:8px">
-          <label>Servicio / Departamento</label>
-          <select id="f-servicio-medico" onchange="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-            <option value="">Seleccioná servicio...</option>
-            <option>Anatomía Patológica</option>
-            <option>Cirugía</option>
-            <option>Clínica Médica y Especialidades Clínicas</option>
-            <option>Emergencias</option>
-            <option>Gastroenterología</option>
-            <option>Ginecología y Obstetricia</option>
-            <option>Hemodinamia</option>
-            <option>Hospital de Día Oncológico</option>
-            <option>Imágenes</option>
-            <option>Neonatología</option>
-            <option>Pediatría</option>
-            <option>Radioterapia</option>
-            <option>Rehabilitación (Terapia Física, T. Ocupacional, Fono)</option>
-            <option>Terapia Intensiva</option>
-            <option>Traumatología</option>
-            <option>Unidad Coronaria</option>
-            <option>UTI Pediátrica</option>
-          </select>
-        </div>
-      </div>
-      <!-- Tipo de Felicitación — solo visible para Felicitación -->
-      <div class="form-group" id="bloque-tipo-felicitacion" style="display:none">
-        <label>Tipo de Felicitación</label>
-        <select id="f-tipo-felicitacion" onchange="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-          <option value="">Seleccioná...</option>
-          <option>Calidad de Atención Médica</option>
-          <option>Calidad de Atención Administrativa</option>
-          <option>Calidad de Atención Enfermería</option>
-          <option>Calidad de Atención Técnica</option>
-          <option>Calidad de Atención General</option>
-          <option>Puntualidad en la Atención Médica</option>
-          <option>Puntualidad en la Atención Administrativa</option>
-          <option>Instalaciones</option>
-          <option>General</option>
-          <option>Otros</option>
-        </select>
-        <div id="bloque-tipo-fel-otro" style="display:none;margin-top:8px">
-          <input type="text" id="f-tipo-felicitacion-otro" placeholder="Especificá el tipo de felicitación..." oninput="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-        </div>
-      </div>
-      <!-- Motivo hidden - se carga desde gestiones -->
-      <input type="hidden" id="f-motivo" value="">
-      <div style="display:none" id="campo-motivo-admin"></div>
-      <div class="form-section-divider" id="section-gestion"><span>⚙️ Gestión y Seguimiento</span></div>
-
-      <!-- GESTIONES MÚLTIPLES -->
-      <div id="gestiones-container" class="full" style="grid-column:1/-1"></div>
-      <!-- Botón agregar como barra -->
-      <div class="full" style="grid-column:1/-1;border:2px dashed var(--border);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px">
-        <button type="button" class="btn btn-outline" onclick="agregarGestion()" style="font-size:0.85rem;padding:8px 20px;width:100%">⊕ Agregar Gestión y Seguimiento</button>
-      </div>
-      <!-- Enviar en copia -->
-      <div class="full" id="campo-copia-mail" style="grid-column:1/-1;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;background:#f8fafc;display:none">
-        <!-- Modo nuevo caso: checkbox + campos editables -->
-        <div id="copia-modo-nuevo">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--green-dark)">
-            <input type="checkbox" id="chk-enviar-copia" onchange="toggleCopiaMailUI()" style="width:16px;height:16px;accent-color:var(--green-main)">
-            📤 Enviar caso en copia a otros destinatarios
-          </label>
-          <div id="copia-mail-fields" style="display:none;margin-top:12px">
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">Hasta 3 direcciones de correo. Recibirán un resumen con datos del paciente, relato y adjuntos.</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;gap:8px;align-items:center">
-                <input type="email" id="copia-mail-1" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-1').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-2">
-                <input type="email" id="copia-mail-2" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-2').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-3">
-                <input type="email" id="copia-mail-3" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
-                <button type="button" onclick="document.getElementById('copia-mail-3').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
-              </div>
-              <button type="button" id="btn-agregar-copia" onclick="agregarCampoCopia()" style="align-self:flex-start;background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 14px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">+ Agregar otro mail</button>
-            </div>
-          </div>
-        </div>
-        <!-- Modo edición: mails guardados readonly -->
-        <div id="copia-modo-readonly" style="display:none">
-          <div style="font-size:0.78rem;font-weight:600;color:var(--green-dark);margin-bottom:6px">📤 Enviado en copia a</div>
-          <div id="copia-readonly-lista"></div>
-        </div>
-      </div>
-
-      <!-- Hidden legacy inputs for backward compat -->
-      <input type="hidden" id="f-criticidad" value="Baja">
-      <input type="hidden" id="f-responsable" value="">
-      <input type="hidden" id="f-responsable-email" value="">
-      <input type="hidden" id="f-responsable-login" value="">
-      <input type="hidden" id="f-estado" value="Pendiente">
-      <input type="hidden" id="f-vencimiento" value="">
-      <!-- f-respuesta y f-accion se mantienen como hidden para compat con saveCase -->
-      <input type="hidden" id="f-respuesta" value="">
-      <input type="hidden" id="f-accion" value="">
-
-      <div class="form-group full" id="campo-comentario-dir" style="display:none"><label>💼 Comentario Dirección</label><textarea id="f-comentario-dir" placeholder="Cargado por Dirección..." style="min-height:60px;background:#f0f5ff;color:var(--text-muted);cursor:not-allowed;border-color:#c7d7f5" readonly></textarea></div>
-      <div class="form-group full"><label>📋 Respuesta al Paciente</label><textarea id="f-obs-admin" placeholder="Respuesta enviada al paciente..." style="min-height:60px;background:#fefce8;border-color:#fde68a" oninput="checkObsAdmin(); updateBtnEnviarRespuesta()"></textarea></div>
-      <div class="form-group full">
-        <label style="display:flex;align-items:center;justify-content:space-between">
-          <span>🗒️ Resumen de Gestiones</span>
-          <button type="button" onclick="guardarResumenGestiones()" title="Guardar resumen" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.8rem;color:var(--green-dark)">💾 Guardar</button>
-        </label>
-        <textarea id="f-resumen-gestiones" placeholder="Notas internas / resumen de la gestión del caso..." style="min-height:60px"></textarea>
-        <div id="resumen-saved-msg" style="display:none;font-size:0.72rem;color:#065f46;margin-top:3px">✅ Guardado</div>
-      </div>
-      <div class="form-group" id="campo-fecha-cierre" style="display:none">
-        <label>📅 Fecha de Cierre</label>
-        <input type="date" id="f-fecha-cierre" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px">Se completa automáticamente al cerrar el caso</div>
-      </div>
-    </div>
-    <div id="modal-validation-msg">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
-    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-        <!-- Estado del caso -->
-        <span id="modal-estado-badge" style="padding:5px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;background:#f3f4f6;color:#374151"></span>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <!-- Enviar a responsable: visible cuando hay gestión con responsable -->
-        <button class="btn btn-outline" id="btn-enviar-responsable" onclick="enviarAResponsable()" style="display:none;border-color:#1e7a44;color:#1e7a44">
-          📨 Enviar a responsable
-        </button>
-        <!-- Enviar respuesta al presentante: activo cuando hay respuesta del responsable -->
-        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none">
-          📧 Enviar respuesta al presentante
-        </button>
-        <!-- btn-cerrar-caso removido del footer — el cierre ocurre al enviar respuesta al presentante -->
-        <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
-        <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ── VISTA USUARIO ──────────────────────────────────────────── -->
 <div id="user-view">
@@ -4441,19 +4225,7 @@ function openModal(id) {
   }
   renderAdjuntosList();
 
-  var _mo = document.getElementById('modal-overlay');
-  if (_mo.parentElement !== document.body) {
-    document.body.appendChild(_mo);
-  }
-  var _si = document.getElementById('modal-force-style');
-  if (!_si) {
-    _si = document.createElement('style');
-    _si.id = 'modal-force-style';
-    _si.textContent = '#modal-overlay { display: flex !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 99999 !important; background: rgba(0,0,0,0.5) !important; align-items: center !important; justify-content: center !important; }';
-    document.head.appendChild(_si);
-  }
-  _si.disabled = false;
-  _mo.classList.add('active');
+  document.getElementById('modal-overlay').classList.add('active');
   // Lock fields if editing an existing case
   lockFields(!!id);
   // If editing, scroll modal to Gestión y Seguimiento
@@ -4466,9 +4238,7 @@ function openModal(id) {
 }
 function closeModal() {
   var _mo = document.getElementById('modal-overlay');
-  _mo.classList.remove('active');
-  var _si2 = document.getElementById('modal-force-style');
-  if (_si2) _si2.disabled = true;
+  document.getElementById('modal-overlay').classList.remove('active');
   editingId = null;
   lockFields(false);
   ['f-fecha','f-hora','f-sede','f-servicio','f-tipo','f-motivo','f-apellido','f-nombre','f-dni','f-criticidad','f-responsable','f-responsable-email','f-estado']
@@ -5089,5 +4859,223 @@ if (currentUser) {
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Nuevo Caso</div>
+    <div class="form-grid">
+
+      <div class="locked-banner" id="locked-banner">🔒 Los datos del presentante, sede y tipo no pueden modificarse una vez guardado el caso.</div>
+      <div class="form-section-divider" id="section-fecha-lugar"><span>📅 Fecha y Lugar</span></div>
+      <div class="form-group"><label>Fecha de Ingreso <span class="req">*</span></label><input type="date" id="f-fecha"></div>
+      <div class="form-group"><label>Hora de Ingreso <span class="req">*</span></label><input type="time" id="f-hora"></div>
+      <!-- Sede y Servicio hidden - se carga desde gestiones -->
+      <input type="hidden" id="f-sede" value="">
+      <input type="hidden" id="f-servicio" value="">
+      <input type="hidden" id="f-servicio-texto" value="">
+
+      <div class="form-section-divider"><span>👤 Datos del Presentante</span></div>
+      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="f-apellido" placeholder="García"></div>
+      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="f-nombre" placeholder="María"></div>
+      <div class="form-group"><label>DNI <span class="req">*</span></label><input type="text" id="f-dni" placeholder="12345678"></div>
+      <div class="form-group"><label>Mail del Presentante <span class="req">*</span></label><input type="email" id="f-mail-presentante" placeholder="mail@ejemplo.com"></div>
+      <div class="form-group"><label>Teléfono</label><input type="text" id="f-telefono" placeholder="11-1234-5678"></div>
+
+
+      <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
+      <div class="form-group full" id="campo-adjunto" style="display:none">
+        <label>📎 Adjuntar Archivos (hasta 3)</label>
+        <div id="adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        <div style="margin-top:8px">
+          <label id="btn-agregar-adjunto" style="background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:inline-flex;align-items:center;gap:6px">
+            📁 Agregar archivo
+            <input type="file" id="f-adjunto" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleAdjunto(this)">
+          </label>
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:10px">PDF, JPG, PNG · Máx. 5MB por archivo · Hasta 3 archivos</span>
+        </div>
+      </div>
+      <div class="form-group full"><label>Relato del Hecho</label><textarea id="f-relato" placeholder="Descripción del caso..."></textarea></div>
+
+      <div class="form-section-divider"><span>📌 Tipo y Clasificación</span></div>
+      <div class="form-group">
+        <label>Presentación <span class="req">*</span></label>
+        <select id="f-tipo" onchange="toggleComentarioDir(); updateMotivoAdmin(); renderGestiones(); toggleCerrarCaso(); toggleBloquesFelicitacion(); toggleGuardarBtn()"><option>Queja / Reclamo</option><option>Sugerencia</option><option>Felicitación</option></select>
+      </div>
+
+      <!-- Tipo de Reclamo y Motivo — solo para Queja/Reclamo -->
+      <div id="bloque-tipo-reclamo" style="display:none;grid-column:1/-1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+          <div class="form-group">
+            <label>Tipo de Reclamo</label>
+            <select id="f-tipo-reclamo" onchange="onTipoReclamoChange()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+              <option value="">Seleccioná...</option>
+              <option>Reclamo Medico</option>
+              <option>Reclamo Administrativo</option>
+              <option>Reclamo Enfermería</option>
+              <option>Reclamo Técnico</option>
+              <option>Reclamo de Infraestructura</option>
+              <option>Reclamo Maestranza</option>
+              <option>Reclamo Sistemas/Soporte</option>
+              <option>Comunicación</option>
+              <option>Alimentación</option>
+              <option>Turnos</option>
+              <option>Seguridad/Vigilancia</option>
+              <option>Bioingeniería</option>
+              <option>Reclamo Resultado</option>
+              <option>General/Otros</option>
+              <option>Prepago</option>
+</select>
+          </div>
+          <div class="form-group">
+            <label>Motivo del Reclamo</label>
+            <select id="f-motivo-reclamo" onchange="toggleMotivoOtroReclamo(); syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+              <option value="">— primero elegí tipo —</option>
+            </select>
+          </div>
+        </div>
+        <div id="bloque-motivo-otro-reclamo" style="display:none;margin-top:8px">
+          <div class="form-group">
+            <label>Especificá el motivo</label>
+            <input type="text" id="f-motivo-reclamo-otro" placeholder="Describí el motivo..." oninput="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          </div>
+        </div>
+        <div class="form-group" id="bloque-servicio-medico" style="display:none;margin-top:8px">
+          <label>Servicio / Departamento</label>
+          <select id="f-servicio-medico" onchange="syncTipoMotivoReclamo()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+            <option value="">Seleccioná servicio...</option>
+            <option>Anatomía Patológica</option>
+            <option>Cirugía</option>
+            <option>Clínica Médica y Especialidades Clínicas</option>
+            <option>Emergencias</option>
+            <option>Gastroenterología</option>
+            <option>Ginecología y Obstetricia</option>
+            <option>Hemodinamia</option>
+            <option>Hospital de Día Oncológico</option>
+            <option>Imágenes</option>
+            <option>Neonatología</option>
+            <option>Pediatría</option>
+            <option>Radioterapia</option>
+            <option>Rehabilitación (Terapia Física, T. Ocupacional, Fono)</option>
+            <option>Terapia Intensiva</option>
+            <option>Traumatología</option>
+            <option>Unidad Coronaria</option>
+            <option>UTI Pediátrica</option>
+          </select>
+        </div>
+      </div>
+      <!-- Tipo de Felicitación — solo visible para Felicitación -->
+      <div class="form-group" id="bloque-tipo-felicitacion" style="display:none">
+        <label>Tipo de Felicitación</label>
+        <select id="f-tipo-felicitacion" onchange="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          <option value="">Seleccioná...</option>
+          <option>Calidad de Atención Médica</option>
+          <option>Calidad de Atención Administrativa</option>
+          <option>Calidad de Atención Enfermería</option>
+          <option>Calidad de Atención Técnica</option>
+          <option>Calidad de Atención General</option>
+          <option>Puntualidad en la Atención Médica</option>
+          <option>Puntualidad en la Atención Administrativa</option>
+          <option>Instalaciones</option>
+          <option>General</option>
+          <option>Otros</option>
+        </select>
+        <div id="bloque-tipo-fel-otro" style="display:none;margin-top:8px">
+          <input type="text" id="f-tipo-felicitacion-otro" placeholder="Especificá el tipo de felicitación..." oninput="syncTipoFelicitacion()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+        </div>
+      </div>
+      <!-- Motivo hidden - se carga desde gestiones -->
+      <input type="hidden" id="f-motivo" value="">
+      <div style="display:none" id="campo-motivo-admin"></div>
+      <div class="form-section-divider" id="section-gestion"><span>⚙️ Gestión y Seguimiento</span></div>
+
+      <!-- GESTIONES MÚLTIPLES -->
+      <div id="gestiones-container" class="full" style="grid-column:1/-1"></div>
+      <!-- Botón agregar como barra -->
+      <div class="full" style="grid-column:1/-1;border:2px dashed var(--border);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px">
+        <button type="button" class="btn btn-outline" onclick="agregarGestion()" style="font-size:0.85rem;padding:8px 20px;width:100%">⊕ Agregar Gestión y Seguimiento</button>
+      </div>
+      <!-- Enviar en copia -->
+      <div class="full" id="campo-copia-mail" style="grid-column:1/-1;border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;background:#f8fafc;display:none">
+        <!-- Modo nuevo caso: checkbox + campos editables -->
+        <div id="copia-modo-nuevo">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--green-dark)">
+            <input type="checkbox" id="chk-enviar-copia" onchange="toggleCopiaMailUI()" style="width:16px;height:16px;accent-color:var(--green-main)">
+            📤 Enviar caso en copia a otros destinatarios
+          </label>
+          <div id="copia-mail-fields" style="display:none;margin-top:12px">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px">Hasta 3 direcciones de correo. Recibirán un resumen con datos del paciente, relato y adjuntos.</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="email" id="copia-mail-1" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-1').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-2">
+                <input type="email" id="copia-mail-2" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-2').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;display:none" id="copia-row-3">
+                <input type="email" id="copia-mail-3" placeholder="mail@cemic.edu.ar" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem">
+                <button type="button" onclick="document.getElementById('copia-mail-3').value=''" style="background:none;border:none;color:#9ca3af;cursor:pointer;font-size:0.9rem">✕</button>
+              </div>
+              <button type="button" id="btn-agregar-copia" onclick="agregarCampoCopia()" style="align-self:flex-start;background:none;border:1px dashed var(--border);border-radius:8px;padding:6px 14px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">+ Agregar otro mail</button>
+            </div>
+          </div>
+        </div>
+        <!-- Modo edición: mails guardados readonly -->
+        <div id="copia-modo-readonly" style="display:none">
+          <div style="font-size:0.78rem;font-weight:600;color:var(--green-dark);margin-bottom:6px">📤 Enviado en copia a</div>
+          <div id="copia-readonly-lista"></div>
+        </div>
+      </div>
+
+      <!-- Hidden legacy inputs for backward compat -->
+      <input type="hidden" id="f-criticidad" value="Baja">
+      <input type="hidden" id="f-responsable" value="">
+      <input type="hidden" id="f-responsable-email" value="">
+      <input type="hidden" id="f-responsable-login" value="">
+      <input type="hidden" id="f-estado" value="Pendiente">
+      <input type="hidden" id="f-vencimiento" value="">
+      <!-- f-respuesta y f-accion se mantienen como hidden para compat con saveCase -->
+      <input type="hidden" id="f-respuesta" value="">
+      <input type="hidden" id="f-accion" value="">
+
+      <div class="form-group full" id="campo-comentario-dir" style="display:none"><label>💼 Comentario Dirección</label><textarea id="f-comentario-dir" placeholder="Cargado por Dirección..." style="min-height:60px;background:#f0f5ff;color:var(--text-muted);cursor:not-allowed;border-color:#c7d7f5" readonly></textarea></div>
+      <div class="form-group full"><label>📋 Respuesta al Paciente</label><textarea id="f-obs-admin" placeholder="Respuesta enviada al paciente..." style="min-height:60px;background:#fefce8;border-color:#fde68a" oninput="checkObsAdmin(); updateBtnEnviarRespuesta()"></textarea></div>
+      <div class="form-group full">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span>🗒️ Resumen de Gestiones</span>
+          <button type="button" onclick="guardarResumenGestiones()" title="Guardar resumen" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.8rem;color:var(--green-dark)">💾 Guardar</button>
+        </label>
+        <textarea id="f-resumen-gestiones" placeholder="Notas internas / resumen de la gestión del caso..." style="min-height:60px"></textarea>
+        <div id="resumen-saved-msg" style="display:none;font-size:0.72rem;color:#065f46;margin-top:3px">✅ Guardado</div>
+      </div>
+      <div class="form-group" id="campo-fecha-cierre" style="display:none">
+        <label>📅 Fecha de Cierre</label>
+        <input type="date" id="f-fecha-cierre" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px">Se completa automáticamente al cerrar el caso</div>
+      </div>
+    </div>
+    <div id="modal-validation-msg">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <!-- Estado del caso -->
+        <span id="modal-estado-badge" style="padding:5px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;background:#f3f4f6;color:#374151"></span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <!-- Enviar a responsable: visible cuando hay gestión con responsable -->
+        <button class="btn btn-outline" id="btn-enviar-responsable" onclick="enviarAResponsable()" style="display:none;border-color:#1e7a44;color:#1e7a44">
+          📨 Enviar a responsable
+        </button>
+        <!-- Enviar respuesta al presentante: activo cuando hay respuesta del responsable -->
+        <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none">
+          📧 Enviar respuesta al presentante
+        </button>
+        <!-- btn-cerrar-caso removido del footer — el cierre ocurre al enviar respuesta al presentante -->
+        <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
+        <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
