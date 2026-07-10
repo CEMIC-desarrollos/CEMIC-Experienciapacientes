@@ -1084,6 +1084,8 @@
 </div>
 
 <!-- MODAL -->
+
+
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-title" id="modal-title">Nuevo Caso</div>
@@ -1292,7 +1294,6 @@
     </div>
   </div>
 </div>
-
 <script>
 // ─── USUARIOS ──────────────────────────────────────────────
 // Los usuarios se identifican dinámicamente por el email cargado en cada caso.
@@ -1974,8 +1975,8 @@ function doLogin() {
   showApp();
 }
 
-document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
-document.getElementById('login-email').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('login-pass').focus(); });
+var _lp = document.getElementById('login-pass'); if(_lp) _lp.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+var _le = document.getElementById('login-email'); if(_le) _le.addEventListener('keydown', function(e){ if(e.key==='Enter') { var lp=document.getElementById('login-pass'); if(lp) lp.focus(); } });
 
 function doLogout() {
   currentUser = null;
@@ -4968,7 +4969,7 @@ function restaurarEliminado(id) {
     loadData(function() { renderSACasos(); updateTimestamp(); });
   }).catch(function(e) { alert('Error al restaurar: '+e.message); });
 }
-document.getElementById('modal-overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+var _moEl = document.getElementById('modal-overlay'); if (_moEl) _moEl.addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 
 // ─── CAMBIO DE CONTRASEÑA ──────────────────────────────────
 function openChangePass() {
