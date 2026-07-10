@@ -1136,6 +1136,8 @@
             <select id="f-tipo-reclamo" onchange="onTipoReclamoChange()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
               <option value="">Seleccioná...</option>
               <option>Reclamo Medico</option>
+              <option>Resultados Laboratorio</option>
+              <option>Resultados Imágenes</option>
               <option>Reclamo Administrativo</option>
               <option>Reclamo Enfermería</option>
               <option>Reclamo Técnico</option>
@@ -1284,12 +1286,13 @@
     <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="btn-guardar-modal" onclick="saveCase('silencioso')" title="Guarda los datos sin enviar notificaciones por mail">💾 Guardar datos</button>
+        <button class="btn btn-outline" id="btn-enviar-responsable" onclick="enviarAResponsable()" style="display:none;border-color:#2563eb;color:#2563eb" title="Guarda el caso, notifica al responsable asignado y envía confirmación al presentante">📨 Enviar a responsable</button>
         <button class="btn btn-outline" id="btn-enviar-respuesta" onclick="enviarRespuestaPresentanteManual()" style="display:none" title="Solo disponible para criticidad Baja o Media">
           📧 Enviar respuesta al presentante
         </button>
         <button class="btn btn-outline" id="btn-cerrar-caso" onclick="cerrarCaso()" style="display:none;border-color:#dc2626;color:#dc2626">✕ Cerrar caso</button>
         <span id="badge-caso-cerrado-modal" style="display:none;padding:6px 16px;border-radius:8px;background:#d1fae5;color:#065f46;font-weight:600;font-size:0.85rem">✅ Caso Cerrado</span>
-        <button class="btn" id="btn-guardar-modal" onclick="saveCase()">Guardar</button>
       </div>
     </div>
   </div>
@@ -1602,8 +1605,8 @@ function setVencimientoGestion(idx) {
 }
 
 // ─── TIPO Y MOTIVO RECLAMO ────────────────────────────────────
-var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas", "Demora Técnica"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Caída del Portal de Turnos", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Turno prolongado/accesibilidad", "Turno Cancelado", "Calidad de atención del operador", "Portal web", "Canal no responde", "Turno mal dado"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/hurto"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta"]};
-var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "General/Otros", "Prepago"];
+var TIPOS_RECLAMO_MAP = {"Reclamo Medico": ["Demora Medica", "Calidad de Atención", "Diagnóstico o informe incorrecto", "Falta de Información/Explicación", "Receta errónea", "Cambio de médico solicitante", "Turno cancelado", "Turno prolongado/accesibilidad", "Médico se retira sin atender"], "Resultados Laboratorio": ["Demora en entrega de resultados laboratorio", "Informe incorrecto laboratorio"], "Resultados Imágenes": ["Demora en entrega de resultados imagenes", "Informe incorrecto imagenes"], "Reclamo Administrativo": ["Demora en Recepción", "Calidad de Atención", "Error administrativo", "Falta de información/Orientación"], "Reclamo Enfermería": ["Demora Enfermería", "Calidad de Atención", "Falta de Información/Explicación", "Disconformidad en la práctica", "Llamador no funciona", "Sábanas/Frazadas"], "Reclamo Técnico": ["Calidad de Atención", "Técnica Inadecuada/Procedimiento brusco", "Demora Técnica"], "Reclamo de Infraestructura": ["Mobiliario roto/incómodo", "Climatización", "Volumen sonoro", "Falta de accesibilidad", "Falta de espacio físico"], "Reclamo Maestranza": ["Limpieza", "Calidad de Atención", "Falta de insumos"], "Reclamo Sistemas/Soporte": ["Tótem fuera de servicio", "Tótem poco orientativo", "Caída del sistema", "Caída del Portal de Turnos", "TV no funciona"], "Comunicación": ["Señalética/Carteles Orientativos"], "Alimentación": ["Comida mal sabor", "Comida fría/cantidad", "Fuera de la dieta", "Demora", "Calidad de atención"], "Turnos": ["Demora en ser atendido", "Calidad de atención del operador", "Portal web", "Canal no responde", "Turno mal dado"], "Seguridad/Vigilancia": ["Calidad de atención", "Robo/hurto"], "Bioingeniería": ["Equipamiento médico", "Cama rota"], "General/Otros": ["General / Otros"], "Prepago": ["Ambulancia", "Internación domiciliaria", "Cuota", "Reintegro", "Farmacia", "Extracción a domicilio", "Servicio terceros", "Falta de respuesta", "Autorizaciones", "Reclamo administrativo"]};
+var TIPOS_RECLAMO_LIST = ["Reclamo Medico", "Resultados Laboratorio", "Resultados Imágenes", "Reclamo Administrativo", "Reclamo Enfermería", "Reclamo Técnico", "Reclamo de Infraestructura", "Reclamo Maestranza", "Reclamo Sistemas/Soporte", "Comunicación", "Alimentación", "Turnos", "Seguridad/Vigilancia", "Bioingeniería", "General/Otros", "Prepago"];
 
 function onTipoReclamoChange() {
   var tipo = document.getElementById('f-tipo-reclamo').value;
@@ -1811,6 +1814,28 @@ function syncLegacyFields() {
   if (fcrit) fcrit.value = hasCritica ? 'Evento Crítico' : (g0.criticidad||'Baja');
   if (typeof toggleComentarioDir === 'function') toggleComentarioDir();
   if (typeof updateBtnEnviarRespuesta === 'function') updateBtnEnviarRespuesta();
+  if (typeof updateBtnEnviarResponsable === 'function') updateBtnEnviarResponsable();
+}
+
+function updateBtnEnviarResponsable() {
+  var btn = document.getElementById('btn-enviar-responsable');
+  if (!btn) return;
+  var hayResponsable = (gestionesData||[]).some(function(g){
+    var e = g.responsable_email_real || g.responsable_email || '';
+    return e && e.includes('@');
+  });
+  var esCerrado = editingId ? (function(){ var c = data.find(function(x){return x.id===editingId;}); return c && c.estado === 'Cerrado'; })() : false;
+  btn.style.display = (hayResponsable && !esCerrado) ? 'inline-flex' : 'none';
+}
+
+function enviarAResponsable() {
+  var _gestionesCheck = getGestionesFromForm();
+  var hayResponsable = _gestionesCheck.some(function(g){
+    var e = g.responsable_email_real || g.responsable_email || '';
+    return e && e.includes('@');
+  });
+  if (!hayResponsable) { alert('Asigná un responsable con email válido antes de enviar.'); return; }
+  saveCase('forzar');
 }
 
 function getGestionesFromForm() {
@@ -2832,6 +2857,9 @@ function renderUserView() {
         </div>` : ''}
         <div class="case-relato-label">Relato del hecho</div>
         <div class="case-relato">${d.relato||'Sin relato registrado.'}</div>
+        ${d.resumen_gestiones ? `
+        <div class="case-relato-label" style="margin-top:8px">🗒️ Resumen de Gestiones</div>
+        <div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#374151">${d.resumen_gestiones}</div>` : ''}
         ` + (d.adjunto_base64 ? `<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="` + d.adjunto_base64 + `" download="` + (d.adjunto_nombre||'adjunto') + `" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ` + (d.adjunto_nombre||'Descargar archivo') + `</a></div>` : '') + `
         <div class="case-respuesta">
           ${(d.tipo === 'Felicitación' || d.tipo === 'Sugerencia') ? `
@@ -4213,6 +4241,8 @@ function openModal(id) {
   document.getElementById('btn-cerrar-caso').style.display = 'none';
   const btnCerrar2 = document.getElementById('btn-cerrar-caso-2');
   if (btnCerrar2) btnCerrar2.style.display = 'none';
+  const btnEnviarResp2 = document.getElementById('btn-enviar-responsable');
+  if (btnEnviarResp2) btnEnviarResp2.style.display = 'none';
   // Botón enviar respuesta: solo visible al editar, activo solo si criticidad Baja o Media
   const btnEnviarResp = document.getElementById('btn-enviar-respuesta');
   if (btnEnviarResp) {
@@ -4260,6 +4290,7 @@ function openModal(id) {
     checkObsAdmin();
     toggleComentarioDir();
     toggleCerrarCaso();
+    updateBtnEnviarResponsable();
   }, 80);
   // Ahora que las gestiones estan cargadas, actualizar btn cerrar caso
   if (id) {
@@ -4307,6 +4338,8 @@ function openModal(id) {
     var btnGuardarM = document.getElementById('btn-guardar-modal');
     if (btnGuardarM) btnGuardarM.style.display = 'none';
     document.querySelectorAll('#btn-cerrar-caso, #btn-cerrar-caso-2').forEach(function(b){ b.style.display='none'; });
+    var btnEnviarRespCerrado = document.getElementById('btn-enviar-responsable');
+    if (btnEnviarRespCerrado) btnEnviarRespCerrado.style.display = 'none';
     // Banner de solo lectura
     var banner = document.createElement('div');
     banner.id = 'banner-cerrado-modal';
@@ -4532,7 +4565,12 @@ function sendCopiaResumen(nc, copiaEmails, gestIdx) {
   });
 }
 
-function saveCase() {
+function saveCase(modo) {
+  // modo: undefined => comportamiento clásico (notifica solo si cambia responsable/criticidad)
+  //       'silencioso' => guarda sin enviar NINGÚN mail
+  //       'forzar' => guarda y SIEMPRE notifica al responsable + confirmación al presentante
+  var silencioso = modo === 'silencioso';
+  var forzarEnvio = modo === 'forzar';
   // Validacion campos obligatorios
   // f-sede, f-servicio, f-criticidad, f-responsable, f-responsable-email son hidden
   // y se sincronizan desde las gestiones, no se validan directamente aqui.
@@ -4653,7 +4691,7 @@ function saveCase() {
       }
       // Si cambió obs_admin → enviar respuesta al presentante (solo baja/media)
       const obsAdminCambio = nc.obs_admin && nc.obs_admin !== casoAnterior.obs_admin;
-      if (obsAdminCambio) sendRespuestaPresentante(data[idx]);
+      if (obsAdminCambio && !silencioso) sendRespuestaPresentante(data[idx]);
       // Si cambió el responsable → enviar notificación al nuevo
       // Comparar tanto en root como en gestiones (casos del formulario público)
       const responableCambio = nc.responsable_email !== casoAnterior.responsable_email;
@@ -4666,7 +4704,7 @@ function saveCase() {
       });
 
       var notifEnviada = false;
-      if (responableCambio || gestionEmailNueva) {
+      if (!silencioso && (responableCambio || gestionEmailNueva || forzarEnvio)) {
         if (!nc.id) nc.id = editingId;
         sendNotificationEmails(nc);
         notifEnviada = true;
@@ -4674,9 +4712,13 @@ function saveCase() {
       // Si cambió la criticidad a Crítica → enviar alerta (solo si no se envió ya)
       const criticidadCambioACritica = nc.criticidad === 'Crítica' && casoAnterior.criticidad !== 'Crítica';
       const tipoCasoCritico = nc.tipo === 'Caso Crítico' && casoAnterior.tipo !== 'Caso Crítico';
-      if ((criticidadCambioACritica || tipoCasoCritico) && !notifEnviada) {
+      if (!silencioso && (criticidadCambioACritica || tipoCasoCritico) && !notifEnviada) {
         if (!nc.id) nc.id = editingId;
         sendNotificationEmails(nc);
+      }
+      // Enviar a responsable: además de notificar, avisar al presentante que su caso fue derivado
+      if (forzarEnvio && !silencioso && data[idx].mail_presentante) {
+        sendAvisoDerivacion(data[idx]);
       }
     }
   } else {
@@ -4716,8 +4758,10 @@ function saveCase() {
       if (nc.responsable_email) {
         logTrazabilidad('Caso derivado a responsable', 'N° de Gestión: '+nc.id+' → '+nc.responsable+' ('+nc.responsable_email+')');
       }
-      sendNotificationEmails(nc);
-      sendConfirmacionPresentante(nc);
+      if (!silencioso) {
+        sendNotificationEmails(nc);
+        sendConfirmacionPresentante(nc);
+      }
       // Popup confirmación caso nuevo
       setTimeout(function(){
         var popup = document.createElement('div');
@@ -4813,6 +4857,23 @@ function sendConfirmacionPresentante(nc) {
       console.error('[EMAILJS] Error al enviar confirmación:', JSON.stringify(err));
       alert('⚠️ No se pudo enviar el mail de confirmación. Error: ' + (err.text || err.message || JSON.stringify(err)));
     });
+}
+
+function sendAvisoDerivacion(nc) {
+  // Avisa al presentante que su caso fue derivado a un responsable para su análisis
+  if (!nc.mail_presentante || !nc.mail_presentante.trim()) return;
+  if (!emailjsReady) return;
+  var sede = (nc.gestiones && nc.gestiones[0] && nc.gestiones[0].sede) || nc.sede || '';
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
+    to_email:  nc.mail_presentante.trim(),
+    to_name:   ((nc.apellido||'') + ' ' + (nc.nombre||'')).trim() || 'Presentante',
+    caso_id:   'N° de Gestión: ' + nc.id,
+    caso_tipo: nc.tipo || '',
+    caso_sede: sede,
+    message:   'Tu presentación fue derivada al sector correspondiente para su análisis y seguimiento.\n\n' +
+               'N° de Gestión: ' + nc.id + '\n\n' +
+               'Te contactaremos nuevamente ante cualquier novedad.\n\nEquipo de Experiencia del Paciente\nCEMIC',
+  }).catch(function(err){ console.warn('EmailJS aviso derivación:', err); });
 }
 
 function sendRespuestaPresentante(nc) {
