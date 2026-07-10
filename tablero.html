@@ -3646,7 +3646,7 @@ function enviarRespuestaPresentanteManual() {
   var sede   = caso ? caso.sede   : document.getElementById('f-sede').value;
   if (!emailjsReady) { alert('EmailJS no está listo.'); return; }
 
-  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA, {
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESPUESTA_ADMIN, {
     to_email:  mail,
     to_name:   nombre || 'Presentante',
     caso_id:   editingId || '—',
@@ -4752,8 +4752,9 @@ var EMAILJS_SERVICE_ID        = 'service_e44ykfo';
 var EMAILJS_TEMPLATE_ID       = 'template_6vwexef';   // notif responsable normal
 var EMAILJS_TEMPLATE_RECUPERAR = 'template_f981g9v';  // recuperación de contraseña
 var EMAILJS_TEMPLATE_CRITICO  = 'template_cw7ifbb';   // notif crítico
-var EMAILJS_TEMPLATE_CONFIRM  = 'template_n6t2u5q';  // confirmación al presentante ← reemplazar
-var EMAILJS_TEMPLATE_RESPUESTA= 'template_le6zo3n';// respuesta al presentante ← reemplazar
+var EMAILJS_TEMPLATE_CONFIRM         = 'template_n6t2u5q';   // confirmación automática al presentante
+var EMAILJS_TEMPLATE_RESPUESTA_ADMIN = 'template_v0xc46f';   // respuesta manual admin → presentante
+var EMAILJS_TEMPLATE_RESPUESTA       = 'template_le6zo3n';   // copia interna
 var emailjsReady = false;
 try {
   if (EMAILJS_PUBLIC_KEY !== 'TU_PUBLIC_KEY') {
