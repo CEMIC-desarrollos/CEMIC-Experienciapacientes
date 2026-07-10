@@ -4442,11 +4442,17 @@ function openModal(id) {
   renderAdjuntosList();
 
   var _mo = document.getElementById('modal-overlay');
-  // Mover al body para evitar problemas de stacking context
   if (_mo.parentElement !== document.body) {
     document.body.appendChild(_mo);
   }
-  _mo.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:rgba(0,0,0,0.5) !important; align-items:center !important; justify-content:center !important;';
+  var _si = document.getElementById('modal-force-style');
+  if (!_si) {
+    _si = document.createElement('style');
+    _si.id = 'modal-force-style';
+    _si.textContent = '#modal-overlay { display: flex !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; z-index: 99999 !important; background: rgba(0,0,0,0.5) !important; align-items: center !important; justify-content: center !important; }';
+    document.head.appendChild(_si);
+  }
+  _si.disabled = false;
   _mo.classList.add('active');
   // Lock fields if editing an existing case
   lockFields(!!id);
@@ -4461,7 +4467,8 @@ function openModal(id) {
 function closeModal() {
   var _mo = document.getElementById('modal-overlay');
   _mo.classList.remove('active');
-  _mo.style.cssText = '';
+  var _si2 = document.getElementById('modal-force-style');
+  if (_si2) _si2.disabled = true;
   editingId = null;
   lockFields(false);
   ['f-fecha','f-hora','f-sede','f-servicio','f-tipo','f-motivo','f-apellido','f-nombre','f-dni','f-criticidad','f-responsable','f-responsable-email','f-estado']
