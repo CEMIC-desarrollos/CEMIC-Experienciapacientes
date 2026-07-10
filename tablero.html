@@ -1855,7 +1855,8 @@ function getGestionesFromForm() {
       responsable_email_real: g.responsable_email_real||'',
       vencimiento: (document.getElementById('g-venc-'+i)||{}).value||g.vencimiento||'',
       respuesta: g.respuesta||'',
-      accion: g.accion||''
+      accion: g.accion||'',
+      email_notificado: g.email_notificado||''
     };
   });
 }
@@ -2299,7 +2300,7 @@ function renderSACasos() {
     (function(){
     var saRowFn = function(d) {
       return '<tr style="border-bottom:1px solid var(--border)">' +
-        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
+        '<td style="padding:7px 8px"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
         '<td style="padding:7px 8px;font-size:0.78rem">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
@@ -2819,8 +2820,12 @@ function renderUserView() {
     }
     var vencGestion = (miGestion && miGestion.vencimiento) || d.vencimiento || '';
     const v = isVencido(vencGestion, d.estado);
-    const respGuardada = (miGestion && miGestion.respuesta) || d.respuesta || '';
-    const accionGuardada = (miGestion && miGestion.accion) || d.accion || '';
+    // Cada responsable debe ver únicamente SU respuesta (la de su gestión).
+    // Solo se recurre a los campos legacy de raíz (d.respuesta/d.accion) cuando el caso
+    // no tiene gestiones múltiples (formato antiguo, un solo responsable).
+    const tieneMultiplesGestiones = d.gestiones && d.gestiones.length > 0;
+    const respGuardada = tieneMultiplesGestiones ? ((miGestion && miGestion.respuesta) || '') : (d.respuesta || '');
+    const accionGuardada = tieneMultiplesGestiones ? ((miGestion && miGestion.accion) || '') : (d.accion || '');
     const estadoResp = d.estado_respuesta || 'Pendiente';
     return `
     <div class="case-card ${tipoClass}" id="case-card-${d.id}">
@@ -2924,18 +2929,22 @@ function saveUserResp(id) {
   const accion = document.getElementById(`accion-${id}`).value;
   const idx = data.findIndex(x => x.id === id);
   if (idx !== -1) {
-    // Guardar en campos legacy (root)
-    data[idx].respuesta = respuesta;
-    data[idx].accion = accion;
-    // Guardar en gestiones[] — buscar la gestión de este responsable
+    // Guardar en gestiones[] — buscar la gestión de este responsable (cada uno contesta la suya)
     var myEmailReal = (currentUser.email_real || currentUser.email).toLowerCase();
+    var gIdx = -1;
     if (data[idx].gestiones && data[idx].gestiones.length > 0) {
-      var gIdx = data[idx].gestiones.findIndex(function(g){
+      gIdx = data[idx].gestiones.findIndex(function(g){
         return (g.responsable_email_real||g.responsable_email||'').toLowerCase() === myEmailReal;
       });
       if (gIdx === -1) gIdx = 0; // fallback a primera gestión
       data[idx].gestiones[gIdx].respuesta = respuesta;
       data[idx].gestiones[gIdx].accion = accion;
+    }
+    // Campos legacy (root): solo se sincronizan si es la única gestión, o la primera (gIdx 0),
+    // para no pisar con la respuesta de un responsable la de otro en el campo de compatibilidad.
+    if (!data[idx].gestiones || data[idx].gestiones.length <= 1 || gIdx === 0) {
+      data[idx].respuesta = respuesta;
+      data[idx].accion = accion;
     }
     // Si hay respuesta o acción → cambiar estado del caso a "Respuesta del Responsable"
     const nuevoEstado = (respuesta.trim() || accion.trim()) ? 'Respuesta enviada' : 'Pendiente';
@@ -3299,6 +3308,14 @@ function getBgStatus(s) {
 function getColorStatus(s) {
   return ({'Cerrado':'#065f46','Respuesta del Responsable':'#065f46','Derivado a Responsable':'#92400e','Pendiente':'#92400e','Vencido':'#991b1b','Caso Nuevo':'#5b21b6'})[s]||'#6b7280';
 }
+function origenBadge(d) {
+  // Identifica visualmente si el caso fue cargado por el paciente (QR / formulario público)
+  // o por un admin/gestor desde el panel ("+ Nuevo caso")
+  if (d.origen === 'formulario_publico') {
+    return '<span title="Cargado por el paciente vía QR" style="margin-left:5px;font-size:0.62rem;background:#e0f2fe;color:#075985;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">📱 QR</span>';
+  }
+  return '<span title="Cargado por admin/gestor desde el panel" style="margin-left:5px;font-size:0.62rem;background:#f3f4f6;color:#374151;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">🧑‍💼 Admin</span>';
+}
 
 function getActiveFilters() {
   return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
@@ -3431,7 +3448,7 @@ function renderTabla() {
     const respEsc = (d.respuesta||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     const accionEsc = (d.accion||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
     return `<tr class="caso-row" onclick="toggleDetalle(${d.id})" style="cursor:pointer">
-      <td style="font-size:0.78rem"><strong>#${d.id}</strong></td>
+      <td style="font-size:0.78rem"><strong>#${d.id}</strong>${origenBadge(d)}</td>
       <td style="font-size:0.74rem;white-space:nowrap">${(d.fecha||'—').replace('2026-','').replace('2025-','')}</td>
       <td style="font-size:0.74rem"><strong>${d.sede||'—'}</strong><br><span style="color:var(--text-muted);font-size:0.68rem">${d.servicio||''}</span></td>
       <td><span class="${getBadgeClass(d.tipo)}" style="font-size:0.65rem;padding:2px 5px">${(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')}</span></td>
@@ -4600,7 +4617,11 @@ function saveCase(modo) {
   msgEl.style.display = 'none';
   var _gestiones = getGestionesFromForm();
   var _g0 = _gestiones[0] || {};
+  var _casoExistente = editingId ? data.find(function(x){ return x.id === editingId; }) : null;
   const nc = {
+    // Origen del caso: si ya tenía uno (ej. 'formulario_publico' vía QR), se conserva.
+    // Si es un caso nuevo cargado desde este panel (+ Nuevo caso), queda marcado como 'admin'.
+    origen: (_casoExistente && _casoExistente.origen) || 'admin',
     fecha:document.getElementById('f-fecha').value, hora:document.getElementById('f-hora').value,
     sede: _g0.sede || document.getElementById('f-sede').value || '',
     servicio: _g0.sector || getServicioAdmin() || '',
@@ -4693,32 +4714,45 @@ function saveCase(modo) {
       const obsAdminCambio = nc.obs_admin && nc.obs_admin !== casoAnterior.obs_admin;
       if (obsAdminCambio && !silencioso) sendRespuestaPresentante(data[idx]);
       // Si cambió el responsable → enviar notificación al nuevo
-      // Comparar tanto en root como en gestiones (casos del formulario público)
-      const responableCambio = nc.responsable_email !== casoAnterior.responsable_email;
-      const gestionEmailNueva = nc.gestiones && nc.gestiones.some(function(g, gi) {
-        var emailNuevo = g.responsable_email_real || g.responsable_email || '';
-        var emailAnterior = (casoAnterior.gestiones && casoAnterior.gestiones[gi])
-          ? (casoAnterior.gestiones[gi].responsable_email_real || casoAnterior.gestiones[gi].responsable_email || '')
-          : '';
-        return emailNuevo && emailNuevo.includes('@') && emailNuevo !== emailAnterior;
+      // Se calcula gestión por gestión para no re-notificar a responsables ya avisados
+      var gestionesANotificar = [];
+      (nc.gestiones||[]).forEach(function(g, gi) {
+        var emailActual = g.responsable_email_real || g.responsable_email || '';
+        if (!emailActual || !emailActual.includes('@')) return;
+        var gAnterior = (casoAnterior.gestiones && casoAnterior.gestiones[gi]) || {};
+        var emailAnterior = gAnterior.responsable_email_real || gAnterior.responsable_email || '';
+        var emailYaNotificado = gAnterior.email_notificado || '';
+        if (forzarEnvio) {
+          // "Enviar a responsable": notificar solo si este responsable (con este email) no fue notificado todavía
+          if (emailActual !== emailYaNotificado) gestionesANotificar.push(gi);
+        } else {
+          // Guardado no silencioso (flujo clásico): notificar solo si el email cambió respecto a lo guardado antes
+          if (emailActual !== emailAnterior) gestionesANotificar.push(gi);
+        }
       });
 
       var notifEnviada = false;
-      if (!silencioso && (responableCambio || gestionEmailNueva || forzarEnvio)) {
+      if (!silencioso && gestionesANotificar.length > 0) {
         if (!nc.id) nc.id = editingId;
-        sendNotificationEmails(nc);
+        sendNotificationEmails(nc, gestionesANotificar);
         notifEnviada = true;
+        // Persistir la marca de "ya notificado" en las gestiones correspondientes
+        saveCaso(data[idx]);
       }
-      // Si cambió la criticidad a Crítica → enviar alerta (solo si no se envió ya)
+      // Si cambió la criticidad a Crítica → enviar alerta a todos los responsables (no se aplica el filtro por gestión)
       const criticidadCambioACritica = nc.criticidad === 'Crítica' && casoAnterior.criticidad !== 'Crítica';
       const tipoCasoCritico = nc.tipo === 'Caso Crítico' && casoAnterior.tipo !== 'Caso Crítico';
       if (!silencioso && (criticidadCambioACritica || tipoCasoCritico) && !notifEnviada) {
         if (!nc.id) nc.id = editingId;
         sendNotificationEmails(nc);
+        saveCaso(data[idx]);
       }
-      // Enviar a responsable: además de notificar, avisar al presentante que su caso fue derivado
-      if (forzarEnvio && !silencioso && data[idx].mail_presentante) {
+      // Enviar a responsable: avisar al presentante que su caso fue derivado, pero solo la PRIMERA vez
+      // (si luego se agrega un 2do/3er responsable, no hay que volver a notificar al presentante)
+      if (forzarEnvio && !silencioso && data[idx].mail_presentante && !casoAnterior.aviso_derivacion_enviado) {
         sendAvisoDerivacion(data[idx]);
+        data[idx].aviso_derivacion_enviado = true;
+        saveCaso(data[idx]);
       }
     }
   } else {
@@ -4761,6 +4795,8 @@ function saveCase(modo) {
       if (!silencioso) {
         sendNotificationEmails(nc);
         sendConfirmacionPresentante(nc);
+        nc.aviso_derivacion_enviado = true; // ya se avisó al presentante en la creación; no reenviar al sumar más responsables
+        saveCaso(nc); // persistir marca de email_notificado en las gestiones
       }
       // Popup confirmación caso nuevo
       setTimeout(function(){
@@ -4890,15 +4926,17 @@ function sendRespuestaPresentante(nc) {
   }).catch(function(err){ console.warn('EmailJS respuesta error:', err); });
 }
 
-function sendNotificationEmails(nc) {
+function sendNotificationEmails(nc, gestionIndices) {
 
   if (!emailjsReady) { console.warn('[NOTIF] emailjsReady=false, abortando'); return; }
   const appUrl = 'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html';
 
-  // Notificar a cada gestión
+  // Notificar a cada gestión (o solo a las indicadas en gestionIndices, si se pasa)
   var gestiones = nc.gestiones && nc.gestiones.length > 0 ? nc.gestiones : [nc];
+  var filtro = Array.isArray(gestionIndices) ? gestionIndices : null;
 
-  gestiones.forEach(function(g) {
+  gestiones.forEach(function(g, gi) {
+    if (filtro && filtro.indexOf(gi) === -1) return; // esta gestión no necesita notificación
     var destEmail = g.responsable_email_real || g.responsable_email || '';
     if (!destEmail || !destEmail.includes('@')) {
       console.warn('[EMAILJS] Responsable sin email válido:', g.responsable, destEmail);
@@ -4924,6 +4962,8 @@ function sendNotificationEmails(nc) {
       app_url:   appUrl,
       message:   mensajeResp
     }).catch(function(err){ console.warn('EmailJS responsable:', err); });
+    // Marcar esta gestión como notificada con el email actual, para no reenviar de nuevo si no cambia
+    g.email_notificado = destEmail;
     // Notificar a dirección si Alta o Crítica
     if (esAltaOCritico) {
       var EMAIL_CRITICOS = { 'Saavedra':'direccionsaav@cemic.edu.ar' };
@@ -4988,7 +5028,7 @@ function openEliminados() {
       '<th style="padding:8px"></th></tr></thead><tbody>' +
       rows.map(function(d) {
         return '<tr style="border-bottom:1px solid var(--border)">' +
-          '<td style="padding:7px 8px"><strong>#'+d.id+'</strong></td>' +
+          '<td style="padding:7px 8px"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
           '<td style="padding:7px 8px">'+(d.fecha||'—')+(d.estado==='Cerrado'&&d.fecha_cierre?'<br><span style="font-size:0.68rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
           '<td style="padding:7px 8px">'+(d.sede||'—')+'</td>' +
           '<td style="padding:7px 8px">'+(d.tipo||'—')+'</td>' +
