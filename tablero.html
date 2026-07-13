@@ -3773,7 +3773,9 @@ function enviarRespuestaPresentanteManual() {
     if (editingId) {
       const idx = data.findIndex(x => x.id === editingId);
       if (idx !== -1) {
+        data[idx].obs_admin = resp;
         data[idx].estado = 'Cerrado';
+        if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
         saveCaso(data[idx]);
       }
     }
