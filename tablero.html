@@ -927,19 +927,30 @@
 
 <!-- ── VISTA USUARIO ──────────────────────────────────────────── -->
 <div id="user-view">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
-    <div>
-      <div class="user-welcome" id="user-welcome-title">Bienvenido/a</div>
-      <div class="user-welcome-sub" id="user-welcome-sub">Estas son las presentaciones derivadas a vos.</div>
+  <div id="dir-tabs-bar" style="display:none;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px">
+    <button class="tab-btn active" id="dir-tab-btn-gestion" onclick="switchDirTab('gestion')">📋 Casos en Gestión</button>
+    <button class="tab-btn" id="dir-tab-btn-casos" onclick="switchDirTab('casos')">🗂️ Casos</button>
+    <button class="tab-btn" id="dir-tab-btn-tablero" onclick="switchDirTab('tablero')">📊 Tablero</button>
+  </div>
+
+  <div id="dir-tab-content-gestion">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+      <div>
+        <div class="user-welcome" id="user-welcome-title">Bienvenido/a</div>
+        <div class="user-welcome-sub" id="user-welcome-sub">Estas son las presentaciones derivadas a vos.</div>
+      </div>
+      <button id="btn-archivados-userview" onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
+        🗃️ Casos Archivados
+      </button>
     </div>
-    <button onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
-      🗃️ Casos Archivados
-    </button>
+    <div class="user-stats" id="user-stats-bar"></div>
+    <div id="user-cases-list">
+      <div class="user-empty"><div class="user-empty-icon">📭</div><div>No tenés casos asignados.</div></div>
+    </div>
   </div>
-  <div class="user-stats" id="user-stats-bar"></div>
-  <div id="user-cases-list">
-    <div class="user-empty"><div class="user-empty-icon">📭</div><div>No tenés casos asignados.</div></div>
-  </div>
+
+  <div id="dir-tab-content-casos" style="display:none"></div>
+  <div id="dir-tab-content-tablero" style="display:none"></div>
 </div>
 
 <!-- SUPERADMIN VIEW -->
@@ -2071,6 +2082,13 @@ function showApp() {
   } else if (currentUser.rol === 'direccion') {
     document.querySelector('main').style.display = 'none';
     document.getElementById('user-view').classList.add('active');
+    var dirTabsBar = document.getElementById('dir-tabs-bar');
+    if (dirTabsBar) dirTabsBar.style.display = 'flex';
+    var btnCasosDir = document.getElementById('dir-tab-btn-casos');
+    if (btnCasosDir) btnCasosDir.style.display = '';
+    var btnArchDir = document.getElementById('btn-archivados-userview');
+    if (btnArchDir) btnArchDir.setAttribute('onclick', 'openArchivadosAdmin()');
+    switchDirTab('gestion');
     loadData(function() { renderDireccionView(); updateTimestamp(); startRealtimeListener(); });
   } else if (currentUser.rol === 'admin' || currentUser.rol === 'readonly') {
     document.querySelector('main').style.display = 'block';
@@ -2103,6 +2121,13 @@ function showApp() {
   } else {
     document.querySelector('main').style.display = 'none';
     document.getElementById('user-view').classList.add('active');
+    var dirTabsBar2 = document.getElementById('dir-tabs-bar');
+    if (dirTabsBar2) dirTabsBar2.style.display = 'flex';
+    var btnCasosResp = document.getElementById('dir-tab-btn-casos');
+    if (btnCasosResp) btnCasosResp.style.display = 'none'; // "Casos" (por sede) es exclusivo de Dirección
+    var btnArchDir2 = document.getElementById('btn-archivados-userview');
+    if (btnArchDir2) btnArchDir2.setAttribute('onclick', 'openArchivados()');
+    switchDirTab('gestion');
     loadData(function() { renderUserView(); updateTimestamp(); startRealtimeListener(); });
   }
 }
@@ -2579,122 +2604,176 @@ function checkCustomUsers(email, pass) {
 
 // ─── FIN SUPERADMIN ────────────────────────────────────────
 
-function renderDireccionView() {
-  const nombre = currentUser.nombre || 'Dirección';
-  document.getElementById('user-welcome-title').textContent = `Hola, ${nombre} 👋`;
-  document.getElementById('user-welcome-sub').textContent = 'Estos son los casos de criticidad CRÍTICA registrados en el sistema.';
+// ─── VISTA DIRECCIÓN ───────────────────────────────────────
+// ─── TABS PARA DIRECCIÓN ────────────────────────────────────
+function switchDirTab(tab) {
+  ['gestion','casos','tablero'].forEach(function(t) {
+    var el = document.getElementById('dir-tab-content-'+t);
+    var btn = document.getElementById('dir-tab-btn-'+t);
+    if (el) el.style.display = (t===tab) ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+  var esDireccion = currentUser && currentUser.rol === 'direccion';
+  if (tab === 'gestion') { esDireccion ? renderDireccionView() : renderUserView(); }
+  if (tab === 'casos') renderDireccionCasos();
+  if (tab === 'tablero') { esDireccion ? renderDireccionTablero() : renderResponsableTablero(); }
+}
 
-  const casos = data.filter(d =>
-    (d.criticidad === 'Crítica' || d.criticidad === 'Evento Crítico' || d.tipo === 'Caso Crítico') && d.estado !== 'Cerrado'
-  ).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id);
+function renderResponsableTablero() {
+  var cont = document.getElementById('dir-tab-content-tablero');
+  if (!cont) return;
+  var myEmail = (currentUser.email_real || currentUser.email).toLowerCase();
+  var myCases = data.filter(function(d) {
+    if ((d.responsable_email_real||'').toLowerCase() === myEmail) return true;
+    if ((d.responsable_email||'').toLowerCase() === myEmail) return true;
+    if (d.gestiones && d.gestiones.some(function(g){
+      return (g.responsable_email_real||'').toLowerCase() === myEmail || (g.responsable_email||'').toLowerCase() === myEmail;
+    })) return true;
+    return false;
+  });
+  var total = myCases.length;
+  var cerrados = myCases.filter(function(d){ return d.estado === 'Cerrado'; }).length;
+  var pendientes = myCases.filter(function(d){ return d.estado === 'Pendiente'; }).length;
+  var derivados = myCases.filter(function(d){ return d.estado === 'Derivado a Responsable'; }).length;
+  var respondidos = myCases.filter(function(d){ return d.estado === 'Respuesta del Responsable'; }).length;
+  var vencidos = myCases.filter(function(d){ return isVencido(d.vencimiento, d.estado); }).length;
+  function kpiCard(icon, label, value, color) {
+    return '<div style="background:white;border-radius:10px;padding:16px;border-top:3px solid '+color+'">' +
+      '<div style="font-size:1.8rem;font-weight:700;color:'+color+'">'+value+'</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">'+icon+' '+label+'</div></div>';
+  }
+  cont.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:24px;margin-top:8px">' +
+    '<div style="font-weight:700;font-size:1.05rem;color:var(--green-dark);margin-bottom:16px">📊 Mis Casos — Resumen</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">' +
+    kpiCard('📋','Total asignados', total, '#1e7a44') +
+    kpiCard('⏳','Pendientes', pendientes, '#92400e') +
+    kpiCard('➡️','Derivados', derivados, '#2563eb') +
+    kpiCard('💬','Con respuesta', respondidos, '#7c3aed') +
+    kpiCard('✅','Cerrados', cerrados, '#065f46') +
+    kpiCard('⚠️','Vencidos', vencidos, '#991b1b') +
+    '</div></div>';
+}
 
-  // Stats
-  const total    = casos.length;
-  const pendiente = casos.filter(d => d.estado === 'Pendiente').length;
-  const derivado  = casos.filter(d => d.estado === 'Derivado a Responsable').length;
-  const respondido= casos.filter(d => d.estado === 'Respuesta del Responsable').length;
-  document.getElementById('user-stats-bar').innerHTML = `
-    <div class="user-stat"><div class="user-stat-num">${total}</div><div class="user-stat-label">Casos críticos</div></div>
-    <div class="user-stat" style="border-top-color:#9ca3af"><div class="user-stat-num">${pendiente}</div><div class="user-stat-label">Pendientes</div></div>
-    <div class="user-stat" style="border-top-color:#2563eb"><div class="user-stat-num">${derivado}</div><div class="user-stat-label">Derivados</div></div>
-    <div class="user-stat" style="border-top-color:#7c3aed"><div class="user-stat-num">${respondido}</div><div class="user-stat-label">Con respuesta</div></div>
-  `;
+// Determina qué sede(s) le corresponde ver a este usuario de Dirección
+// (se usa tanto en "Casos en Gestión" como en "Casos")
+function getSedeFiltroDireccion() {
+  var email = (currentUser.email||'').toLowerCase();
+  if (email === 'direccionsaav@cemic.edu.ar' || email === 'dirsaav') return { modo: 'sedes', sedes: ['Saavedra'] };
+  if (email === 'alanguasco@cemic.edu.ar') return { modo: 'sedes', sedes: ['Pombo', 'Las Heras'] };
+  // dirmedica / resto: ve TODAS las sedes (incluidas Saavedra, Pombo y Las Heras)
+  return { modo: 'todas' };
+}
+
+function limpiarFiltrosDireccionCasos() {
+  ['dir-casos-buscar','dir-casos-sede','dir-casos-tipo','dir-casos-estado'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderDireccionCasos();
+}
+
+function renderDireccionCasos() {
+  var cont = document.getElementById('dir-tab-content-casos');
+  if (!cont) return;
+  var filtro = getSedeFiltroDireccion();
+
+  // Leer filtros (si ya existen en el DOM, de un render anterior)
+  var fBuscar = ((document.getElementById('dir-casos-buscar')||{}).value||'').toLowerCase();
+  var fSede   = (document.getElementById('dir-casos-sede')||{}).value||'';
+  var fTipo   = (document.getElementById('dir-casos-tipo')||{}).value||'';
+  var fEstado = (document.getElementById('dir-casos-estado')||{}).value||'';
+
+  var casos = data.filter(function(d) {
+    var enMiAlcance = filtro.modo === 'todas' ? true : filtro.sedes.indexOf(d.sede) !== -1;
+    if (!enMiAlcance) return false;
+    var ms = !fBuscar || [d.apellido,d.nombre,d.servicio,d.motivo,d.responsable,d.sede,d.relato,String(d.id)].some(function(v){ return (v||'').toLowerCase().includes(fBuscar); });
+    return ms
+      && (!fSede   || d.sede === fSede)
+      && (!fTipo   || d.tipo === fTipo)
+      && (!fEstado || d.estado === fEstado);
+  }).sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id; });
+
+  // Panel de filtros — igual estética que la pestaña Casos de admin/superadmin
+  var sedeSelectHtml;
+  if (filtro.modo === 'todas') {
+    sedeSelectHtml = '<option value="">Todas las sedes</option>' +
+      ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'].map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
+  } else {
+    sedeSelectHtml = '<option value="">Todas mis sedes</option>' +
+      filtro.sedes.map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
+  }
+
+  var html = '<div class="filter-panel">' +
+    '<div class="filter-panel-header">🔍 Filtrar casos</div>' +
+    '<div class="filter-grid">' +
+      '<div class="filter-group filter-span2"><label>Buscar</label>' +
+        '<input type="text" id="dir-casos-buscar" value="'+fBuscar+'" placeholder="Nombre, sede, tipo..." oninput="renderDireccionCasos()"></div>' +
+      '<div class="filter-group"><label>Sede</label>' +
+        '<select id="dir-casos-sede" onchange="renderDireccionCasos()">'+sedeSelectHtml+'</select></div>' +
+      '<div class="filter-group"><label>Tipo</label>' +
+        '<select id="dir-casos-tipo" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos los tipos</option>' +
+          ['Queja / Reclamo','Sugerencia','Felicitación'].map(function(s){ return '<option'+(fTipo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Estado</label>' +
+        '<select id="dir-casos-estado" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos los estados</option>' +
+          ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group" style="justify-content:flex-end"><label>&nbsp;</label>' +
+        '<button class="btn btn-ghost" onclick="limpiarFiltrosDireccionCasos()" style="width:100%">✕ Limpiar filtros</button></div>' +
+    '</div></div>';
+
+  html += '<div class="full-panel"><div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--green-pale)">' +
+    '<div class="toolbar-title">📋 <span>'+casos.length+' caso'+(casos.length!==1?'s':'')+'</span></div>' +
+  '</div>';
 
   if (casos.length === 0) {
-    document.getElementById('user-cases-list').innerHTML = `<div class="user-empty"><div class="user-empty-icon">✅</div><div>No hay casos críticos activos.</div></div>`;
+    html += '<div class="empty-state">No hay casos registrados para tu sede.</div></div>';
+    cont.innerHTML = html;
     return;
   }
 
-  document.getElementById('user-cases-list').innerHTML = casos.map(function(d) {
-    var comentario = d.comentario_dir || '';
-    var ck = (d.criticidad||'').replace('é','e').replace('í','i');
-    var dniHtml = d.dni ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">DNI: ' + d.dni + (d.telefono?' · Tel: '+d.telefono:'') + '</div>' : '';
-    var respHtml = d.respuesta ? '<div style="margin-top:10px"><div class="case-relato-label">Respuesta del Responsable</div><div class="case-relato" style="background:#f0fdf4;border-color:#bbf7d0">' + d.respuesta + '</div></div>' : '';
-    var accionHtml = d.accion ? '<div style="margin-top:8px"><div class="case-relato-label">' + (d.tipo === 'Felicitación' ? 'Reconocimiento' : 'Acción de Mejora Responsable') + '</div><div class="case-relato" style="background:#fffbeb;border-color:#fde68a">' + d.accion + '</div></div>' : '';
-    var obsAdminHtml = d.obs_admin ? '<div style="margin-top:8px"><div class="case-relato-label" style="color:#92400e">📋 Respuesta al Paciente</div><div class="case-relato" style="background:#fefce8;border-color:#fde68a;color:#78350f">' + d.obs_admin + '</div></div>' : '';
-    var comHtml = comentario
-      ? '<div class="case-relato" style="background:#f0f5ff;border-color:#c7d7f5">' + comentario + '</div>' +
-        '<div style="font-size:0.7rem;color:#6c757d;margin-top:4px">— ' + (d.comentario_dir_usuario||'Dirección') + ' · ' + (d.comentario_dir_fecha||'') + '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">' +
-        '<button onclick="editComentarioDirCard(' + d.id + ')" style="padding:5px 12px;font-size:0.75rem;border-radius:7px;border:1.5px solid #3b5bdb;background:#f0f5ff;color:#3b5bdb;cursor:pointer;font-weight:600">✏️ Editar</button>' +
-        '<span style="background:' + getBgStatus(d.estado) + ';color:' + getColorStatus(d.estado) + ';border-radius:7px;padding:5px 12px;font-size:0.78rem;font-weight:600">' + (d.estado||'—') + '</span>' + (isVencido(d.vencimiento,d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:7px;padding:5px 10px;font-size:0.75rem;font-weight:600;margin-left:4px">⚠️ Vencido</span>':'') +
-        (d.estado === 'Cerrado' ? '<button onclick="archivarCasoDir(' + d.id + ')" style="padding:5px 12px;font-size:0.78rem;font-weight:600;background:#f3f4f6;color:#374151;border:1.5px solid #d1d5db;border-radius:8px;cursor:pointer">🗃️ Archivar</button>' : '') +
-        '</div>'
-      : '<textarea id="com-dir-' + d.id + '" placeholder="Escribí tu comentario..." style="width:100%;padding:10px;border:1.5px solid #c7d7f5;border-radius:8px;font-size:0.82rem;min-height:80px;background:#f0f5ff;resize:vertical"></textarea>' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">' +
-        '<button onclick="guardarComentarioDirCard(' + d.id + ')" style="padding:7px 16px;font-size:0.8rem;border-radius:8px;border:none;background:#3b5bdb;color:white;cursor:pointer;font-weight:600">💾 Guardar comentario</button>' +
-        '<span style="background:' + getBgStatus(d.estado) + ';color:' + getColorStatus(d.estado) + ';border-radius:7px;padding:5px 12px;font-size:0.78rem;font-weight:600">' + (d.estado||'—') + '</span>' + (isVencido(d.vencimiento,d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:7px;padding:5px 10px;font-size:0.75rem;font-weight:600;margin-left:4px">⚠️ Vencido</span>':'') +
-        (d.estado === 'Cerrado' ? '<button onclick="archivarCasoDir(' + d.id + ')" style="padding:7px 14px;font-size:0.78rem;font-weight:600;background:#f3f4f6;color:#374151;border:1.5px solid #d1d5db;border-radius:8px;cursor:pointer">🗃️ Archivar</button>' : '') +
-        '</div>';
-
-    return '<div class="case-card casocritico" style="border-left-color:#991b1b">' +
-      '<div class="case-card-header">' +
-        '<span class="case-card-id">#' + d.id + '</span>' +
-        '<span class="badge badge-casocritico">' + (d.tipo||'') + '</span>' +
-        '<span class="status-badge" style="background:' + getBgStatus(d.estado) + ';color:' + getColorStatus(d.estado) + '">' + (d.estado||'—') + '</span>' + (isVencido(d.vencimiento,d.estado)?'<span class="status-badge" style="background:#fee2e2;color:#991b1b;margin-left:4px">⚠️ Vencido</span>':'') +
-        '<span class="crit-badge ' + ck + '" style="background:#fee2e2;color:#991b1b">' + (d.criticidad||'—') + '</span>' +
-        '<span class="case-card-meta">' + (d.servicio||'—') + ' · ' + (d.sede||'—') + ' · ' + (d.fecha||'—') + '</span>' +
-      '</div>' +
-      '<div class="case-card-body">' +
-        '<div class="case-relato-label">Paciente</div>' +
-        '<div style="font-size:0.84rem;margin-bottom:4px;font-weight:600">' + (d.apellido||'') + ' ' + (d.nombre||'') + '</div>' +
-        dniHtml +
-        '<div class="case-relato-label" style="margin-top:8px">Motivo</div>' +
-        '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">' + (d.motivo||'—') + '</div>' +
-        '<div class="case-relato-label">Relato del hecho</div>' +
-        '<div class="case-relato">' + (d.relato||'Sin relato registrado.') + '</div>' +
-        (d.adjunto_base64 ? '<div style="margin-top:8px"><div class="case-relato-label">📎 Formulario Adjunto</div><a href="' + d.adjunto_base64 + '" download="' + (d.adjunto_nombre||'adjunto') + '" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);border-radius:7px;font-size:0.8rem;font-weight:600;text-decoration:none">📥 ' + (d.adjunto_nombre||'Descargar archivo') + '</a></div>' : '') +
-        respHtml + accionHtml +
-        '<div style="margin-top:14px">' +
-          '<div class="case-relato-label" style="color:#3b5bdb">💼 Comentario Dirección</div>' +
-          comHtml +
-        '</div>' +
-        obsAdminHtml +
-      '</div>' +
-    '</div>';
-  }).join('');
+  html += '<div class="table-wrapper"><table><thead><tr>' +
+    '<th>ID</th><th>Fecha</th><th>Sede/Servicio</th><th>Tipo</th><th>Paciente</th><th>Estado</th><th>Responsable</th><th>Gestor</th>' +
+    '</tr></thead><tbody>' +
+    casos.map(function(d) {
+      return '<tr>' +
+        '<td style="font-size:0.78rem"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
+        '<td style="font-size:0.74rem;white-space:nowrap">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
+        '<td style="font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
+        '<td><span class="'+getBadgeClass(d.tipo)+'" style="font-size:0.65rem;padding:2px 5px">'+(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')+'</span></td>' +
+        '<td style="font-size:0.76rem">'+(d.apellido||'')+'<br><span style="color:var(--text-muted);font-size:0.7rem">'+(d.nombre||'')+'</span></td>' +
+        '<td style="white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(d.vencimiento,d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':'')+'</td>' +
+        '<td style="font-size:0.74rem" title="'+(d.responsable_email||'')+'">'+(d.responsable||'—')+'</td>' +
+        '<td style="font-size:0.78rem"><span style="font-weight:600;color:var(--green-dark)">'+(d.gestor_nombre||d.gestor_email||'—')+'</span></td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table></div></div>';
+  cont.innerHTML = html;
 }
 
-function guardarComentarioDirCard(id) {
-  const texto = document.getElementById('com-dir-' + id);
-  if (!texto || !texto.value.trim()) { alert('Escribí un comentario antes de guardar.'); return; }
-  const idx = data.findIndex(x => x.id === id);
-  if (idx !== -1) {
-    data[idx].comentario_dir = texto.value.trim();
-    data[idx].comentario_dir_usuario = currentUser.email;
-    data[idx].comentario_dir_fecha = new Date().toLocaleDateString('es-AR');
-    saveCaso(data[idx]);
-    renderDireccionView();
-  }
+function renderDireccionTablero() {
+  var cont = document.getElementById('dir-tab-content-tablero');
+  if (!cont) return;
+  cont.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:24px;margin-top:8px">' +
+    '<div style="font-weight:700;font-size:1.05rem;color:var(--green-dark);margin-bottom:16px">📊 Resumen General</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">' +
+    buildSATableroKPIs() +
+    '</div></div>';
 }
 
-function editComentarioDirCard(id) {
-  const caso = data.find(x => x.id === id);
-  if (!caso) return;
-  const nuevoTexto = prompt('Editar comentario de Dirección:', caso.comentario_dir || '');
-  if (nuevoTexto === null) return;
-  const idx = data.findIndex(x => x.id === id);
-  if (idx !== -1) {
-    data[idx].comentario_dir = nuevoTexto.trim();
-    data[idx].comentario_dir_usuario = currentUser.email;
-    data[idx].comentario_dir_fecha = new Date().toLocaleDateString('es-AR');
-    saveCaso(data[idx]);
-    renderDireccionView();
-  }
-}
-
-// ─── VISTA DIRECCIÓN ───────────────────────────────────────
 function renderDireccionView() {
   var nombre = currentUser.nombre || 'Dirección';
   document.getElementById('user-welcome-title').textContent = 'Hola, ' + nombre + ' 👋';
   document.getElementById('user-welcome-sub').textContent = 'Casos de criticidad Alta y Crítica que requieren tu atención.';
 
-  // Filtrar por sede si es DirSaav
+  // Casos en Gestión: cada Dirección ve solo los casos de alta criticidad de su(s) sede(s)
+  var filtroSedeGestion = getSedeFiltroDireccion();
   var casos = data.filter(function(d) {
-    var crit = d.criticidad === 'Alta' || d.criticidad === 'Crítica' || d.criticidad === 'Evento Crítico' || d.tipo === 'Caso Crítico';
-    if (!crit) return false;
-    if (currentUser.sede) return d.sede === currentUser.sede;
-    return true; // resto ve todos excepto Saavedra
+    var esAltaCrit = d.criticidad === 'Alta' || d.criticidad === 'Crítica' || d.criticidad === 'Evento Crítico' || d.tipo === 'Caso Crítico';
+    if (!esAltaCrit) return false;
+    if (filtroSedeGestion.modo === 'todas') return true;
+    return filtroSedeGestion.sedes.indexOf(d.sede) !== -1;
   });
 
   // Stats
@@ -2719,19 +2798,40 @@ function renderDireccionView() {
     var comentario = d.comentario_dir || '';
     var yaComentado = comentario && d.comentario_dir_usuario;
 
-    var comHtml = yaComentado
-      ? '<div class="case-relato" style="background:#f0f5ff;border-color:#c7d7f5">' + comentario + '</div>' +
-        '<div style="font-size:0.7rem;color:#6c757d;margin-top:4px">— ' + (d.comentario_dir_usuario||'Dirección') + ' · ' + (d.comentario_dir_fecha||'') + '</div>' +
-        (d.estado !== 'Cerrado' ? '<button onclick="editComentarioDirCard(' + d.id + ')" style="margin-top:6px;padding:5px 12px;font-size:0.75rem;border-radius:7px;border:1.5px solid #3b5bdb;background:#f0f5ff;color:#3b5bdb;cursor:pointer;font-weight:600">✏️ Editar</button>' : '')
-      : (d.estado !== 'Cerrado'
-          ? '<textarea id="com-dir-' + d.id + '" placeholder="Escribí tu comentario..." style="width:100%;padding:10px;border:1.5px solid #c7d7f5;border-radius:8px;font-size:0.82rem;min-height:80px;background:#f0f5ff;resize:vertical"></textarea>' +
-            '<button onclick="guardarComentarioDirCard(' + d.id + ')" style="margin-top:6px;padding:7px 16px;font-size:0.8rem;border-radius:8px;border:none;background:#3b5bdb;color:white;cursor:pointer;font-weight:600">💾 Guardar comentario</button>'
-          : '<div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;font-style:italic">Sin comentario de Dirección.</div>'
-        );
+    // dirmedica es "solo lectura" en los casos de las sedes que tienen su propia Dirección
+    // (Saavedra, Pombo, Las Heras): puede ver el comentario, pero no comentar ni cerrar/archivar.
+    var SEDES_CON_DIRECCION_PROPIA = ['Saavedra', 'Pombo', 'Las Heras'];
+    var esDirMedica = (currentUser.email||'').toLowerCase() === 'dirmedica@cemic.edu.ar';
+    var soloLectura = esDirMedica && SEDES_CON_DIRECCION_PROPIA.indexOf(d.sede) !== -1;
 
-    var cerrarBtn = d.estado !== 'Cerrado'
-      ? '<button onclick="cerrarCasoDir(' + d.id + ')" style="padding:6px 14px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer;font-family:DM Sans,sans-serif">✕ Cerrar caso</button>'
-      : '<span style="padding:5px 12px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#d1fae5;color:#065f46">✅ Caso Cerrado</span>';
+    var comHtml;
+    if (soloLectura) {
+      comHtml = yaComentado
+        ? '<div class="case-relato" style="background:#f0f5ff;border-color:#c7d7f5">' + comentario + '</div>' +
+          '<div style="font-size:0.7rem;color:#6c757d;margin-top:4px">— ' + (d.comentario_dir_usuario||'Dirección') + ' · ' + (d.comentario_dir_fecha||'') + '</div>'
+        : '<div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;font-style:italic">Sin comentario de Dirección todavía.</div>';
+    } else {
+      comHtml = yaComentado
+        ? '<div class="case-relato" style="background:#f0f5ff;border-color:#c7d7f5">' + comentario + '</div>' +
+          '<div style="font-size:0.7rem;color:#6c757d;margin-top:4px">— ' + (d.comentario_dir_usuario||'Dirección') + ' · ' + (d.comentario_dir_fecha||'') + '</div>' +
+          (d.estado !== 'Cerrado' ? '<button onclick="editComentarioDirCard(' + d.id + ')" style="margin-top:6px;padding:5px 12px;font-size:0.75rem;border-radius:7px;border:1.5px solid #3b5bdb;background:#f0f5ff;color:#3b5bdb;cursor:pointer;font-weight:600">✏️ Editar</button>' : '')
+        : (d.estado !== 'Cerrado'
+            ? '<textarea id="com-dir-' + d.id + '" placeholder="Escribí tu comentario..." style="width:100%;padding:10px;border:1.5px solid #c7d7f5;border-radius:8px;font-size:0.82rem;min-height:80px;background:#f0f5ff;resize:vertical"></textarea>' +
+              '<button onclick="guardarComentarioDirCard(' + d.id + ')" style="margin-top:6px;padding:7px 16px;font-size:0.8rem;border-radius:8px;border:none;background:#3b5bdb;color:white;cursor:pointer;font-weight:600">💾 Guardar comentario</button>'
+            : '<div class="case-relato" style="background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;font-style:italic">Sin comentario de Dirección.</div>'
+          );
+    }
+
+    var cerrarBtn;
+    if (soloLectura) {
+      cerrarBtn = '<span style="padding:5px 12px;border-radius:7px;font-size:0.78rem;font-weight:600;background:' + getBgStatus(d.estado) + ';color:' + getColorStatus(d.estado) + '">' + (d.estado||'—') + '</span>' +
+        '<span style="font-size:0.72rem;color:#94a3b8;font-style:italic;margin-left:8px">Gestionado por la Dirección de sede</span>';
+    } else {
+      cerrarBtn = d.estado !== 'Cerrado'
+        ? '<button onclick="cerrarCasoDir(' + d.id + ')" style="padding:6px 14px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer;font-family:DM Sans,sans-serif">✕ Cerrar caso</button>'
+        : '<span style="padding:5px 12px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#d1fae5;color:#065f46">✅ Caso Cerrado</span>' +
+          '<button onclick="archivarCasoDir(' + d.id + ')" style="padding:5px 12px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#f3f4f6;color:#374151;border:1.5px solid #d1d5db;cursor:pointer;font-family:DM Sans,sans-serif;margin-left:8px">🗃️ Archivar</button>';
+    }
 
     return '<div class="case-card" style="border-left-color:#991b1b">' +
       '<div class="case-card-header">' +
@@ -2761,7 +2861,15 @@ function renderDireccionView() {
   }).join('');
 }
 
+function esSedeSoloLecturaParaMi(caso) {
+  var SEDES_CON_DIRECCION_PROPIA = ['Saavedra', 'Pombo', 'Las Heras'];
+  var esDirMedica = (currentUser.email||'').toLowerCase() === 'dirmedica@cemic.edu.ar';
+  return esDirMedica && caso && SEDES_CON_DIRECCION_PROPIA.indexOf(caso.sede) !== -1;
+}
+
 function guardarComentarioDirCard(id) {
+  var caso = data.find(function(x) { return x.id === id; });
+  if (esSedeSoloLecturaParaMi(caso)) { alert('Esta sede tiene su propia Dirección — no podés comentar en sus casos.'); return; }
   var texto = document.getElementById('com-dir-' + id);
   if (!texto || !texto.value.trim()) { alert('Escribí un comentario antes de guardar.'); return; }
   var idx = data.findIndex(function(x) { return x.id === id; });
@@ -2777,6 +2885,7 @@ function guardarComentarioDirCard(id) {
 function editComentarioDirCard(id) {
   var caso = data.find(function(x) { return x.id === id; });
   if (!caso) return;
+  if (esSedeSoloLecturaParaMi(caso)) { alert('Esta sede tiene su propia Dirección — no podés editar el comentario de sus casos.'); return; }
   var nuevoTexto = prompt('Editar comentario de Dirección:', caso.comentario_dir || '');
   if (nuevoTexto === null) return;
   var idx = data.findIndex(function(x) { return x.id === id; });
@@ -2790,6 +2899,17 @@ function editComentarioDirCard(id) {
 }
 
 function cerrarCasoDir(id) {
+  var caso = data.find(function(x) { return x.id === id; });
+  if (!caso) return;
+  if (esSedeSoloLecturaParaMi(caso)) {
+    alert('Este caso pertenece a una sede con Dirección propia. Solo esa Dirección puede cerrarlo.');
+    return;
+  }
+  var esAltaOCritico = caso.criticidad === 'Alta' || caso.criticidad === 'Crítica' || caso.criticidad === 'Evento Crítico' || caso.tipo === 'Caso Crítico';
+  if (esAltaOCritico && (!caso.comentario_dir || !caso.comentario_dir.trim())) {
+    alert('⚠️ No se puede cerrar un caso de criticidad Alta/Crítica sin completar el "Comentario Dirección".');
+    return;
+  }
   if (!confirm('¿Cerrar este caso? El estado cambiará a "Cerrado".')) return;
   var idx = data.findIndex(function(x) { return x.id === id; });
   if (idx !== -1) {
@@ -3609,9 +3729,13 @@ function toggleDetalle(id) {
 }
 
 function archivarCasoDir(id) {
-  if (!confirm('¿Archivar este caso? Se quitará de tu pantalla y podrás verlo en "Casos Archivados".')) return;
   const caso = data.find(d => d.id === id);
   if (!caso) return;
+  if (esSedeSoloLecturaParaMi(caso)) {
+    alert('Este caso pertenece a una sede con Dirección propia. Solo esa Dirección puede archivarlo.');
+    return;
+  }
+  if (!confirm('¿Archivar este caso? Se quitará de tu pantalla y podrás verlo en "Casos Archivados".')) return;
   const casoArchivado = { ...caso, archivado: true, fecha_archivo: new Date().toISOString().split('T')[0] };
   archivadosRef.doc(String(id)).set(casoArchivado)
     .then(function() { return casosRef.doc(String(id)).delete(); })
@@ -5021,7 +5145,8 @@ function sendNotificationEmails(nc, gestionIndices) {
     if (esAltaOCritico) {
       var EMAILS_DIRECCION = {
         'Saavedra': ['direccionsaav@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
-        'Pombo': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar']
+        'Pombo': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
+        'Las Heras': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar']
       };
       var emailsDir = EMAILS_DIRECCION[g.sede||nc.sede] || ['dirmedica@cemic.edu.ar'];
       // Template: solo usar el de "Crítico" para Crítica/Evento Crítico/Caso Crítico real.
