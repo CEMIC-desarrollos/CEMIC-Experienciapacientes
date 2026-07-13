@@ -1954,6 +1954,39 @@ function doLogin() {
     return;
   }
 
+  // Dirección Saavedra (login con el mail que recibe las notificaciones)
+  if (email === 'direccionsaav@cemic.edu.ar') {
+    const p = passwords[email] || '1234';
+    if (pass !== p) { document.getElementById('login-error').classList.add('show'); return; }
+    currentUser = { email: email, nombre: 'Dirección Saavedra', rol: 'direccion', sede: 'Saavedra' };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    document.getElementById('login-error').classList.remove('show');
+    showApp();
+    return;
+  }
+
+  // Dirección Pombo
+  if (email === 'alanguasco@cemic.edu.ar') {
+    const p = passwords[email] || '1234';
+    if (pass !== p) { document.getElementById('login-error').classList.add('show'); return; }
+    currentUser = { email: email, nombre: 'Dirección Pombo', rol: 'direccion', sede: 'Pombo' };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    document.getElementById('login-error').classList.remove('show');
+    showApp();
+    return;
+  }
+
+  // Dirección Médica (ve todas las sedes)
+  if (email === 'dirmedica@cemic.edu.ar') {
+    const p = passwords[email] || '1234';
+    if (pass !== p) { document.getElementById('login-error').classList.add('show'); return; }
+    currentUser = { email: email, nombre: 'Dirección Médica', rol: 'direccion', sede: null };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    document.getElementById('login-error').classList.remove('show');
+    showApp();
+    return;
+  }
+
   // Admin hardcodeado (pantalla completa sin borrar)
   if (email === 'admin') {
     const adminPass = passwords['admin'] || '1234';
@@ -2697,7 +2730,7 @@ function renderDireccionView() {
         );
 
     var cerrarBtn = d.estado !== 'Cerrado'
-      ? ''  // Solo dirección puede cerrar — el responsable solo ve el estado
+      ? '<button onclick="cerrarCasoDir(' + d.id + ')" style="padding:6px 14px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;cursor:pointer;font-family:DM Sans,sans-serif">✕ Cerrar caso</button>'
       : '<span style="padding:5px 12px;border-radius:7px;font-size:0.78rem;font-weight:600;background:#d1fae5;color:#065f46">✅ Caso Cerrado</span>';
 
     return '<div class="case-card" style="border-left-color:#991b1b">' +
@@ -2764,6 +2797,24 @@ function cerrarCasoDir(id) {
     if (!data[idx].fecha_cierre) data[idx].fecha_cierre = new Date().toISOString().split('T')[0];
     saveCaso(data[idx]);
     logTrazabilidad('Caso cerrado (Dirección)', 'N° de Gestión: ' + id + ' cerrado por ' + currentUser.nombre);
+    // Avisar al/los responsable/s que el caso fue cerrado por Dirección
+    if (emailjsReady && data[idx].gestiones && data[idx].gestiones.length > 0) {
+      data[idx].gestiones.forEach(function(g) {
+        var destEmail = g.responsable_email_real || g.responsable_email || '';
+        if (!destEmail || !destEmail.includes('@')) return;
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          to_email:  destEmail,
+          to_name:   g.responsable || destEmail,
+          caso_id:   'N° de Gestión: ' + id,
+          caso_tipo: data[idx].tipo,
+          caso_sede: g.sede || data[idx].sede,
+          caso_crit: g.criticidad || data[idx].criticidad,
+          paciente:  (data[idx].apellido||'') + ' ' + (data[idx].nombre||''),
+          app_url:   'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html',
+          message:   'Dirección cerró el caso #' + id + '. No se requieren más acciones de tu parte.'
+        }).catch(function(err){ console.warn('EmailJS aviso cierre Dirección:', err); });
+      });
+    }
     renderDireccionView();
   }
 }
@@ -4948,7 +4999,7 @@ function sendNotificationEmails(nc, gestionIndices) {
     var nivelCrit = (g.criticidad==='Crítica'?'Evento Crítico':g.criticidad) || 'Baja';
     var loginInfo = '\nUsuario: ' + (g.responsable_email || destEmail) + '\nContraseña: 1234';
     var mensajeResp = esAltaOCritico
-      ? '⚠️ CASO ' + nivelCrit.toUpperCase() + ': Se le asignó un caso de criticidad ' + nivelCrit + ' que requiere atención inmediata.' + loginInfo
+      ? '⚠️ CASO ' + nivelCrit.toUpperCase() + (nivelCrit==='Alta' ? ' CRITICIDAD' : '') + ': Se le asignó un caso de criticidad ' + nivelCrit + ' que requiere atención inmediata.' + loginInfo
       : 'Se le asignó una nueva presentación en el sistema.' + loginInfo;
 
     emailjs.send(EMAILJS_SERVICE_ID, templateResp, {
@@ -4966,15 +5017,25 @@ function sendNotificationEmails(nc, gestionIndices) {
     g.email_notificado = destEmail;
     // Notificar a dirección si Alta o Crítica
     if (esAltaOCritico) {
-      var EMAIL_CRITICOS = { 'Saavedra':'direccionsaav@cemic.edu.ar' };
-      var emailDir = EMAIL_CRITICOS[g.sede||nc.sede] || 'clarasalgado@gmail.com';
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CRITICO, {
-        to_email: emailDir,
-        to_name: (g.sede||nc.sede) === 'Saavedra' ? 'Dirección Saavedra' : 'Dirección',
-        caso_id: nc.id, caso_tipo: nc.tipo, caso_sede: g.sede||nc.sede,
-        caso_crit: g.criticidad, paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
-        message: `⚠️ CASO ${(g.criticidad||'').toUpperCase()}: caso en sede ${g.sede||nc.sede}. Requiere atencion.`
-      }).catch(function(err){ console.warn('EmailJS dir:', err); });
+      var EMAILS_DIRECCION = {
+        'Saavedra': ['direccionsaav@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
+        'Pombo': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar']
+      };
+      var emailsDir = EMAILS_DIRECCION[g.sede||nc.sede] || ['dirmedica@cemic.edu.ar'];
+      // Template: solo usar el de "Crítico" para Crítica/Evento Crítico/Caso Crítico real.
+      // Para Alta, usar el template normal (el de "Crítico" trae un encabezado fijo que dice "Caso Crítico").
+      var templateDir = (g.criticidad==='Crítica'||g.criticidad==='Evento Crítico'||nc.tipo==='Caso Crítico') ? EMAILJS_TEMPLATE_CRITICO : EMAILJS_TEMPLATE_ID;
+      emailsDir.forEach(function(emailDir) {
+        var loginInfoDir = '\nUsuario: ' + emailDir + '\nContraseña: 1234';
+        var mensajeDir = `⚠️ CASO ${(g.criticidad||'').toUpperCase()}${g.criticidad==='Alta' ? ' CRITICIDAD' : ''}: caso en sede ${g.sede||nc.sede}. Requiere atencion.` + loginInfoDir;
+        emailjs.send(EMAILJS_SERVICE_ID, templateDir, {
+          to_email: emailDir,
+          to_name: (g.sede||nc.sede) === 'Saavedra' ? 'Dirección Saavedra' : 'Dirección',
+          caso_id: nc.id, caso_tipo: nc.tipo, caso_sede: g.sede||nc.sede,
+          caso_crit: g.criticidad, paciente: `${nc.apellido} ${nc.nombre}`, app_url: appUrl,
+          message: mensajeDir
+        }).catch(function(err){ console.warn('EmailJS dir:', err); });
+      });
     }
   });
 }
