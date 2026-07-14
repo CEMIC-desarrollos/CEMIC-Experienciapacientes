@@ -971,7 +971,10 @@
   <div id="sa-tab-usuarios" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="font-family:'DM Serif Display',serif;color:var(--green-dark);font-size:1.2rem">Gestión de Usuarios</h3>
-      <button class="btn" onclick="openUserModal()">+ Nuevo Usuario</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="limpiarYCargarUsuariosIniciales()" style="font-size:0.8rem" title="Borra todos los usuarios y carga solo los 9 coordinadores + la cuenta de prueba">🧹 Limpiar y Cargar Iniciales</button>
+        <button class="btn" onclick="openUserModal()">+ Nuevo Usuario</button>
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
       <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Rol</label>
@@ -980,6 +983,7 @@
         <option value="admin">Gestor</option>
         <option value="readonly">Solo Lectura</option>
         <option value="responsable">Responsable</option>
+        <option value="coordinador">Coordinador de Centro</option>
       </select></div>
       <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
       <input type="text" id="sa-filter-usuario-buscar" placeholder="Nombre o usuario..." oninput="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
@@ -1006,11 +1010,14 @@
       <select id="sa-traza-accion" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif">
         <option value="">Todas</option>
         <option>Caso creado</option>
+        <option>Caso creado (Coordinador)</option>
         <option>Caso derivado a responsable</option>
         <option>Respuesta enviada al presentante</option>
+        <option>Caso cerrado (Dirección)</option>
         <option>Gestor asignado</option>
         <option>Usuario creado</option>
         <option>Usuario editado</option>
+        <option>Usuarios reinicializados</option>
         <option>Menú editado</option>
       </select></div>
       <div style="align-self:flex-end"><button class="btn btn-outline" onclick="loadTrazabilidad()" style="font-size:0.8rem;padding:7px 12px">🔍 Filtrar</button></div>
@@ -1065,9 +1072,17 @@
       <div class="form-group"><label>Mail <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400">(recuperación)</span></label><input type="email" id="u-mail-recuperacion" placeholder="ssaponte@cemic.edu.ar"></div>
       <div class="form-group"><label>Contraseña <span class="req">*</span></label><input type="text" id="u-pass" placeholder="1234" value="1234"></div>
       <div class="form-group"><label>Rol</label>
-        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option></select>
+        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option><option value="coordinador">Coordinador de Centro</option></select>
       </div>
       <div class="form-group full" id="campo-sector" style="display:none"><label>Sector / Área</label><input type="text" id="u-sector" placeholder="Ej: Ginecología, Traumatología..."></div>
+      <div class="form-group full" id="campo-sede-coord" style="display:none">
+        <label>Sede que coordina</label>
+        <select id="u-sede-coord" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
+          <option value="">Seleccioná...</option>
+          <option>Saavedra</option><option>Pombo</option><option>Las Heras</option><option>Talcahuano</option>
+          <option>Ballester</option><option>San Isidro</option><option>Belgrano</option><option>Carabobo</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
@@ -1460,30 +1475,8 @@ var RESPONSABLES_PREDEFINIDOS = [
   { id:'resp_gobbi',   nombre:'Enrique Gobbi',   nombre_solo:'Enrique', apellido:'Gobbi',  email:'gobbi',  mail_recuperacion:'andyperrot@cemic.edu.ar', pass:'1234', rol:'responsable', area:'Traumatologia' }
 ];
 
-function preloadResponsables() {
-  var users = getAdminUsers();
-  var changed = false;
-  RESPONSABLES_PREDEFINIDOS.forEach(function(r) {
-    if (!users.find(function(u){ return u.id === r.id; })) {
-      users.push(r);
-      changed = true;
-    }
-  });
-  if (changed) saveAdminUsers(users);
-}
-
-// Llamar al cargar usuarios para asegurar que estén cargados
-function preloadResponsables() {
-  var users = getAdminUsers();
-  var changed = false;
-  RESPONSABLES_PREDEFINIDOS.forEach(function(r) {
-    if (!users.find(function(u){ return u.id === r.id; })) {
-      users.push(r);
-      changed = true;
-    }
-  });
-  if (changed) saveAdminUsers(users);
-}
+// (preloadResponsables removida: era código muerto, nunca se llamaba, y quedó obsoleta
+// desde que Usuarios pasó a manejarse 100% con Firestore)
 // ─── GESTIONES MÚLTIPLES ───────────────────────────────────
 var gestionesData = [];
 var MOTIVOS_GESTION = ['Demora','Maltrato','Cancelación','Otro'];
@@ -1963,7 +1956,9 @@ function enviarRecuperacion() {
   passwords2[usuario] = nuevaPass;
   localStorage.setItem(PASS_KEY2, JSON.stringify(passwords2));
   var idx = users.findIndex(function(x){ return (x.email||'').toLowerCase() === usuario; });
-  if (idx !== -1) { users[idx].pass = nuevaPass; saveAdminUsers(users); }
+  if (idx !== -1) {
+    usuariosRef.doc(usuario).update({ pass: nuevaPass }).catch(function(e){ console.warn('No se pudo persistir nueva pass en Firestore:', e); });
+  }
   if (!emailjsReady) { mostrarMsgRec('Error: EmailJS no disponible.', 'error'); return; }
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RECUPERAR, {
     to_email:  u.mail_recuperacion,
@@ -2280,8 +2275,31 @@ var menuLabels = {tipos:'Tipos de Presentación', criticidades:'Criticidad', tip
 
 function getMenus() { try { return JSON.parse(localStorage.getItem(MENUS_KEY))||defaultMenus; } catch(e) { return defaultMenus; } }
 function saveMenus(m) { localStorage.setItem(MENUS_KEY, JSON.stringify(m)); }
-function getAdminUsers() { try { return JSON.parse(localStorage.getItem(USERS_KEY))||[]; } catch(e) { return []; } }
-function saveAdminUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+
+// ─── USUARIOS (Firestore — fuente única de verdad, funciona en cualquier dispositivo) ───
+var customUsersCache = [];
+var usuariosRef = db.collection('usuarios');
+function startUsuariosRealtimeListener() {
+  usuariosRef.onSnapshot(function(snapshot) {
+    customUsersCache = [];
+    snapshot.forEach(function(doc) {
+      var d = doc.data();
+      customUsersCache.push(Object.assign({ email: doc.id }, d));
+    });
+    // Si la pantalla de Usuarios está abierta, refrescarla
+    if (currentUser && (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full')) {
+      var saTabUsuarios = document.getElementById('sa-tab-usuarios');
+      if (saTabUsuarios && saTabUsuarios.style.display !== 'none') renderUsuarios();
+    }
+  }, function(err) { console.warn('Error escuchando usuarios:', err); });
+}
+startUsuariosRealtimeListener(); // arranca apenas carga la página, disponible antes de loguearse
+
+// getAdminUsers/saveAdminUsers se mantienen por compatibilidad con el resto del código,
+// pero ahora leen de la caché de Firestore (no de localStorage) — así los usuarios
+// funcionan desde cualquier computadora, no solo desde el navegador donde se crearon.
+function getAdminUsers() { return customUsersCache; }
+function saveAdminUsers(u) { /* no-op: los cambios se escriben directo en Firestore (ver saveUser/deleteUser/enviarRecuperacion) */ }
 
 function logTrazabilidad(accion, detalle) {
   if (!currentUser || !TRAZA_REF) return;
@@ -2333,6 +2351,70 @@ function buildSATableroKPIs() {
     kpiCard('⚠️','Vencidos', vencidos, '#c2410c') +
     kpiCard('➖','No procedentes', noProcedente, '#6b7280') +
     (promDias ? kpiCard('⏱','Tiempo promedio gestión', promDias+' días', '#0e7a4e') : '');
+}
+
+function loadTrazabilidad() {
+  var cont = document.getElementById('trazabilidad-list');
+  if (!cont) return;
+  cont.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Cargando...</div>';
+
+  var fDesde = (document.getElementById('sa-traza-desde')||{}).value || '';
+  var fHasta = (document.getElementById('sa-traza-hasta')||{}).value || '';
+  var fUsuario = ((document.getElementById('sa-traza-usuario')||{}).value||'').toLowerCase();
+  var fAccion = (document.getElementById('sa-traza-accion')||{}).value || '';
+
+  TRAZA_REF.orderBy('timestamp','desc').limit(500).get().then(function(snap) {
+    var rows = [];
+    snap.forEach(function(doc){ rows.push(doc.data()); });
+    rows = rows.filter(function(r) {
+      if (fDesde && (r.fecha||'') < fDesde) return false;
+      if (fHasta && (r.fecha||'') > fHasta) return false;
+      if (fUsuario && !((r.usuario||'').toLowerCase().includes(fUsuario) || (r.nombre||'').toLowerCase().includes(fUsuario))) return false;
+      if (fAccion && r.accion !== fAccion) return false;
+      return true;
+    });
+    if (rows.length === 0) {
+      cont.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted)">📭 No hay registros de trazabilidad para este filtro.</div>';
+      return;
+    }
+    cont.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem">' +
+      '<thead><tr style="background:var(--green-light)">' +
+      '<th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Hora</th>' +
+      '<th style="padding:8px;text-align:left">Usuario</th><th style="padding:8px;text-align:left">Acción</th>' +
+      '<th style="padding:8px;text-align:left">Detalle</th></tr></thead><tbody>' +
+      rows.map(function(r) {
+        return '<tr style="border-bottom:1px solid var(--border)">' +
+          '<td style="padding:7px 8px;white-space:nowrap">'+(r.fecha||'—')+'</td>' +
+          '<td style="padding:7px 8px;white-space:nowrap">'+(r.hora||'—')+'</td>' +
+          '<td style="padding:7px 8px">'+(r.nombre||r.usuario||'—')+'</td>' +
+          '<td style="padding:7px 8px"><strong>'+(r.accion||'—')+'</strong></td>' +
+          '<td style="padding:7px 8px;color:var(--text-muted)">'+(r.detalle||'')+'</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function(e) {
+    console.error('Error cargando trazabilidad:', e);
+    cont.innerHTML = '<div style="color:#dc2626;padding:16px">Error al cargar trazabilidad: '+e.message+'</div>';
+  });
+}
+
+function exportarTrazabilidad() {
+  TRAZA_REF.orderBy('timestamp','desc').limit(3000).get().then(function(snap) {
+    var rows = [];
+    snap.forEach(function(doc){ rows.push(doc.data()); });
+    var headers = ['Fecha','Hora','Usuario','Nombre','Acción','Detalle'];
+    var csvRows = rows.map(function(r){ return [r.fecha||'', r.hora||'', r.usuario||'', r.nombre||'', r.accion||'', r.detalle||'']; });
+    var BOM = '\uFEFF';
+    var csv = BOM + 'sep=;\r\n' + [headers].concat(csvRows).map(function(row) {
+      return row.map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';');
+    }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var fecha = new Date().toISOString().split('T')[0];
+    a.href = url; a.download = 'CEMIC_Trazabilidad_'+fecha+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }).catch(function(e) { alert('Error al exportar trazabilidad: '+e.message); });
 }
 
 function switchSATab(tab) {
@@ -2474,6 +2556,41 @@ function renderSACasos() {
 
 var editingUserId = null;
 
+// Borra todos los usuarios en Firestore y carga solo: los 9 coordinadores de centro + la cuenta de prueba.
+// superadmin y admin NO están acá — son cuentas hardcodeadas en el login, no forman parte de esta colección.
+function limpiarYCargarUsuariosIniciales() {
+  if (!confirm('Esto va a BORRAR todos los usuarios actuales y cargar solo los 9 coordinadores + la cuenta de prueba (clarasalgado@gmail.com).\n\n¿Confirmás?')) return;
+  var USUARIOS_INICIALES = [
+    { email: 'clarasalgado@gmail.com', nombre: 'Coordinadora Saavedra (prueba)', apellido: '', rol: 'coordinador', sede: 'Saavedra', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'aaranibar@cemic.edu.ar', nombre: 'Alejandra Aranibar', apellido: '', rol: 'coordinador', sede: 'Saavedra', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'etournie@cemic.edu.ar', nombre: 'Ezequiel Tournie', apellido: '', rol: 'coordinador', sede: 'Saavedra', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'dcarlocchia@cemic.edu.ar', nombre: 'Diego Carloccia', apellido: '', rol: 'coordinador', sede: 'Pombo', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'snicora@cemic.edu.ar', nombre: 'Samanta Nicora', apellido: '', rol: 'coordinador', sede: 'Las Heras', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'rrutigliano@cemic.edu.ar', nombre: 'Roberta Rutigliano', apellido: '', rol: 'coordinador', sede: 'Talcahuano', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'fbasualdo@cemic.edu.ar', nombre: 'Facundo Basualdo', apellido: '', rol: 'coordinador', sede: 'Belgrano', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'bernabe@cemic.edu.ar', nombre: 'Bernabe Demaria', apellido: '', rol: 'coordinador', sede: 'San Isidro', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'gmfernan@cemic.edu.ar', nombre: 'Gustavo Fernandez', apellido: '', rol: 'coordinador', sede: 'Ballester', pass: '1234', mail_recuperacion: '', sector: '' },
+    { email: 'jlaferla@cemic.edu.ar', nombre: 'Juan Laferla', apellido: '', rol: 'coordinador', sede: 'Carabobo', pass: '1234', mail_recuperacion: '', sector: '' }
+  ];
+  usuariosRef.get().then(function(snap) {
+    var batch = db.batch();
+    snap.forEach(function(doc){ batch.delete(doc.ref); });
+    return batch.commit();
+  }).then(function() {
+    var batch2 = db.batch();
+    USUARIOS_INICIALES.forEach(function(u) {
+      batch2.set(usuariosRef.doc(u.email), u);
+    });
+    return batch2.commit();
+  }).then(function() {
+    logTrazabilidad('Usuarios reinicializados', 'Se cargaron ' + USUARIOS_INICIALES.length + ' usuarios (coordinadores + prueba)');
+    alert('✅ Usuarios limpiados y cargados correctamente.');
+    renderUsuarios();
+  }).catch(function(e) {
+    alert('Error al limpiar/cargar usuarios: ' + e.message);
+  });
+}
+
 function renderUsuarios() {
   var grid = document.getElementById('usuarios-list') || document.getElementById('usuarios-grid');
   if (!grid) return;
@@ -2489,12 +2606,12 @@ function renderUsuarios() {
     grid.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted)">No se encontraron usuarios</div>';
     return;
   }
-  var rolLabel = {superadmin:'Super Admin',admin_full:'Admin Full',admin:'Gestor',readonly:'Solo Lectura',responsable:'Responsable',direccion:'Dirección'};
+  var rolLabel = {superadmin:'Super Admin',admin_full:'Admin Full',admin:'Gestor',readonly:'Solo Lectura',responsable:'Responsable',direccion:'Dirección',coordinador:'Coordinador de Centro'};
   grid.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + filtered.map(function(u) {
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
       '<div>' +
         '<div style="font-weight:600;font-size:0.9rem">' + (u.nombre||'') + ' ' + (u.apellido||'') + '</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted)">' + (u.email||'') + ' · ' + (rolLabel[u.rol]||u.rol||'') + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted)">' + (u.email||'') + ' · ' + (rolLabel[u.rol]||u.rol||'') + (u.rol==='coordinador' && u.sede ? ' · '+u.sede : '') + '</div>' +
         (u.mail_recuperacion ? '<div style="font-size:0.72rem;color:var(--text-muted)">✉️ ' + u.mail_recuperacion + '</div>' : '') +
       '</div>' +
       '<button class="btn btn-outline" style="font-size:0.78rem;padding:5px 12px" data-uid="' + (u.email||'') + '" onclick="openUserModal(this.dataset.uid)">✏️ Editar</button>' +
@@ -2513,10 +2630,12 @@ function openUserModal(email) {
   emailEl.value = u ? u.email : '';
   emailEl.disabled = !!u;
   document.getElementById('u-mail-recuperacion').value = u ? (u.mail_recuperacion||'') : '';
-  document.getElementById('u-pass').value = u ? (u.password||'1234') : '1234';
+  document.getElementById('u-pass').value = u ? (u.pass||u.password||'1234') : '1234';
   document.getElementById('u-rol').value = u ? (u.rol||'admin') : 'admin';
   var sectorEl = document.getElementById('u-sector');
   if (sectorEl) sectorEl.value = u ? (u.sector||'') : '';
+  var sedeCoordEl = document.getElementById('u-sede-coord');
+  if (sedeCoordEl) sedeCoordEl.value = u ? (u.sede||'') : '';
   toggleSectorField();
   var btnDel = document.getElementById('btn-delete-user');
   if (btnDel) btnDel.style.display = u ? 'inline-flex' : 'none';
@@ -2534,18 +2653,22 @@ function toggleSectorField() {
   var rol = (document.getElementById('u-rol')||{}).value || '';
   var campo = document.getElementById('campo-sector');
   if (campo) campo.style.display = (rol === 'responsable') ? 'flex' : 'none';
+  var campoSede = document.getElementById('campo-sede-coord');
+  if (campoSede) campoSede.style.display = (rol === 'coordinador') ? 'flex' : 'none';
 }
 
 function saveUser() {
-  var email = (document.getElementById('u-email')||{}).value.trim();
+  var email = (document.getElementById('u-email')||{}).value.trim().toLowerCase();
   var nombre = (document.getElementById('u-nombre')||{}).value.trim();
   var apellido = (document.getElementById('u-apellido')||{}).value.trim();
   var pass = (document.getElementById('u-pass')||{}).value.trim();
   var rol = (document.getElementById('u-rol')||{}).value;
   var mailRec = (document.getElementById('u-mail-recuperacion')||{}).value.trim();
   var sector = (document.getElementById('u-sector')||{}).value.trim();
+  var sedeCoord = (document.getElementById('u-sede-coord')||{}).value || '';
   if (!email || !nombre || !pass) { alert('Completá los campos obligatorios.'); return; }
-  var user = { email:email, nombre:nombre, apellido:apellido, password:pass, rol:rol, mail_recuperacion:mailRec, sector:sector };
+  if (rol === 'coordinador' && !sedeCoord) { alert('Seleccioná la sede que coordina.'); return; }
+  var user = { email:email, nombre:nombre, apellido:apellido, pass:pass, rol:rol, mail_recuperacion:mailRec, sector:sector, sede: rol === 'coordinador' ? sedeCoord : '' };
   db.collection('usuarios').doc(email).set(user).then(function(){
     logTrazabilidad(editingUserId ? 'Usuario editado' : 'Usuario creado', email);
     closeUserModal();
@@ -2684,7 +2807,9 @@ function checkCustomUsers(email, pass) {
     nombre: u.nombre,
     rol: u.rol||'admin',
     // email real para matching con casos (responsables)
-    email_real: (u.mail_recuperacion||'').toLowerCase() || email
+    email_real: (u.mail_recuperacion||'').toLowerCase() || email,
+    // sede: solo aplica a coordinadores de centro
+    sede: u.rol === 'coordinador' ? (u.sede||null) : null
   };
   localStorage.setItem(SESSION_KEY,JSON.stringify(currentUser));
   return true;
@@ -5577,14 +5702,27 @@ function doChangePass() {
   const PASS_KEY = 'cemic_passwords_v1';
   let passwords = {};
   try { passwords = JSON.parse(localStorage.getItem(PASS_KEY)||'{}'); } catch(e){}
-  const storedPass = passwords[currentUser.email] || '1234';
+  // Si es un usuario personalizado (Firestore: gestor, responsable, coordinador), validar contra su pass real ahí
+  var custom = customUsersCache.find(function(u){ return (u.email||'').toLowerCase() === currentUser.email.toLowerCase(); });
+  const storedPass = passwords[currentUser.email] || (custom && custom.pass) || '1234';
   if (oldP !== storedPass) { errEl.textContent='Contraseña actual incorrecta.'; errEl.style.display='block'; return; }
   if (newP.length < 4) { errEl.textContent='La nueva contraseña debe tener al menos 4 caracteres.'; errEl.style.display='block'; return; }
   if (newP !== newP2) { errEl.textContent='Las contraseñas nuevas no coinciden.'; errEl.style.display='block'; return; }
-  passwords[currentUser.email] = newP;
-  localStorage.setItem(PASS_KEY, JSON.stringify(passwords));
-  closeChangePass();
-  alert('✅ Contraseña actualizada correctamente.');
+  if (custom) {
+    // Usuario personalizado: persistir en Firestore para que funcione desde cualquier dispositivo
+    usuariosRef.doc(currentUser.email).update({ pass: newP }).then(function(){
+      closeChangePass();
+      alert('✅ Contraseña actualizada correctamente.');
+    }).catch(function(e){
+      errEl.textContent = 'Error al guardar la contraseña: ' + e.message; errEl.style.display='block';
+    });
+  } else {
+    // Usuario hardcodeado (admin, superadmin, dirección, etc.): se mantiene igual que antes
+    passwords[currentUser.email] = newP;
+    localStorage.setItem(PASS_KEY, JSON.stringify(passwords));
+    closeChangePass();
+    alert('✅ Contraseña actualizada correctamente.');
+  }
 }
 
 // ─── AUTO-REFRESH (detecta cambios del responsable) ───────
