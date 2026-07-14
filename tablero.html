@@ -984,6 +984,7 @@
         <option value="readonly">Solo Lectura</option>
         <option value="responsable">Responsable</option>
         <option value="coordinador">Coordinador de Centro</option>
+        <option value="direccion">Dirección</option>
       </select></div>
       <div><label style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px">Buscar</label>
       <input type="text" id="sa-filter-usuario-buscar" placeholder="Nombre o usuario..." oninput="renderUsuarios()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.82rem;font-family:DM Sans,sans-serif"></div>
@@ -1072,16 +1073,22 @@
       <div class="form-group"><label>Mail <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400">(recuperación)</span></label><input type="email" id="u-mail-recuperacion" placeholder="ssaponte@cemic.edu.ar"></div>
       <div class="form-group"><label>Contraseña <span class="req">*</span></label><input type="text" id="u-pass" placeholder="1234" value="1234"></div>
       <div class="form-group"><label>Rol</label>
-        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option><option value="coordinador">Coordinador de Centro</option></select>
+        <select id="u-rol" onchange="toggleSectorField()"><option value="admin">Gestor</option><option value="readonly">Solo Lectura</option><option value="responsable">Responsable</option><option value="coordinador">Coordinador de Centro</option><option value="direccion">Dirección</option></select>
       </div>
       <div class="form-group full" id="campo-sector" style="display:none"><label>Sector / Área</label><input type="text" id="u-sector" placeholder="Ej: Ginecología, Traumatología..."></div>
       <div class="form-group full" id="campo-sede-coord" style="display:none">
-        <label>Sede que coordina</label>
+        <label id="label-sede-coord">Sede que coordina</label>
         <select id="u-sede-coord" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem">
           <option value="">Seleccioná...</option>
           <option>Saavedra</option><option>Pombo</option><option>Las Heras</option><option>Talcahuano</option>
           <option>Ballester</option><option>San Isidro</option><option>Belgrano</option><option>Carabobo</option>
         </select>
+        <div id="campo-sede-todas" style="display:none;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:400;text-transform:none;color:var(--text)">
+            <input type="checkbox" id="u-sede-todas" onchange="toggleSedeTodas()" style="width:15px;height:15px;accent-color:var(--green-main)">
+            Ve todas las sedes (Dirección General/Médica)
+          </label>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -1469,14 +1476,9 @@ function startRealtimeListener() {
   });
 }
 
-// ─── RESPONSABLES PREDEFINIDOS ─────────────────────────────
-var RESPONSABLES_PREDEFINIDOS = [
-  { id:'resp_crimi',   nombre:'Gabriel Crimi',   nombre_solo:'Gabriel', apellido:'Crimi',  email:'crimi',  mail_recuperacion:'aperrot@cemic.edu.ar', pass:'1234', rol:'responsable', area:'Ginecologia' },
-  { id:'resp_gobbi',   nombre:'Enrique Gobbi',   nombre_solo:'Enrique', apellido:'Gobbi',  email:'gobbi',  mail_recuperacion:'andyperrot@cemic.edu.ar', pass:'1234', rol:'responsable', area:'Traumatologia' }
-];
-
-// (preloadResponsables removida: era código muerto, nunca se llamaba, y quedó obsoleta
-// desde que Usuarios pasó a manejarse 100% con Firestore)
+// (RESPONSABLES_PREDEFINIDOS y preloadResponsables removidos: eran código muerto
+// —nunca se llamaban— y quedaron obsoletos desde que Usuarios pasó a manejarse
+// 100% con Firestore. Los responsables hardcodeados Crimi/Gobbi fueron dados de baja.)
 // ─── GESTIONES MÚLTIPLES ───────────────────────────────────
 var gestionesData = [];
 var MOTIVOS_GESTION = ['Demora','Maltrato','Cancelación','Otro'];
@@ -1991,17 +1993,6 @@ function doLogin() {
     const saPass = passwords['superadmin'] || '1234';
     if (pass !== saPass) { document.getElementById('login-error').classList.add('show'); return; }
     currentUser = { email: 'superadmin', nombre: 'Super Admin', rol: 'superadmin' };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-    document.getElementById('login-error').classList.remove('show');
-    showApp();
-    return;
-  }
-
-  // Dirección Saavedra
-  if (email === 'dirsaav') {
-    const dirPass = passwords['dirsaav'] || '1234';
-    if (pass !== dirPass) { document.getElementById('login-error').classList.add('show'); return; }
-    currentUser = { email: 'dirsaav', nombre: 'Dirección Saavedra', rol: 'direccion', sede: 'Saavedra' };
     localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
     document.getElementById('login-error').classList.remove('show');
     showApp();
@@ -2611,7 +2602,7 @@ function renderUsuarios() {
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
       '<div>' +
         '<div style="font-weight:600;font-size:0.9rem">' + (u.nombre||'') + ' ' + (u.apellido||'') + '</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted)">' + (u.email||'') + ' · ' + (rolLabel[u.rol]||u.rol||'') + (u.rol==='coordinador' && u.sede ? ' · '+u.sede : '') + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--text-muted)">' + (u.email||'') + ' · ' + (rolLabel[u.rol]||u.rol||'') + ((u.rol==='coordinador'||u.rol==='direccion') ? (u.sede ? ' · '+u.sede : (u.rol==='direccion' ? ' · Todas las sedes' : '')) : '') + '</div>' +
         (u.mail_recuperacion ? '<div style="font-size:0.72rem;color:var(--text-muted)">✉️ ' + u.mail_recuperacion + '</div>' : '') +
       '</div>' +
       '<button class="btn btn-outline" style="font-size:0.78rem;padding:5px 12px" data-uid="' + (u.email||'') + '" onclick="openUserModal(this.dataset.uid)">✏️ Editar</button>' +
@@ -2635,7 +2626,10 @@ function openUserModal(email) {
   var sectorEl = document.getElementById('u-sector');
   if (sectorEl) sectorEl.value = u ? (u.sector||'') : '';
   var sedeCoordEl = document.getElementById('u-sede-coord');
-  if (sedeCoordEl) sedeCoordEl.value = u ? (u.sede||'') : '';
+  if (sedeCoordEl) { sedeCoordEl.value = u ? (u.sede||'') : ''; sedeCoordEl.disabled = false; }
+  var sedeTodasEl = document.getElementById('u-sede-todas');
+  if (sedeTodasEl) sedeTodasEl.checked = !!(u && u.rol === 'direccion' && !u.sede);
+  toggleSedeTodas();
   toggleSectorField();
   var btnDel = document.getElementById('btn-delete-user');
   if (btnDel) btnDel.style.display = u ? 'inline-flex' : 'none';
@@ -2654,7 +2648,19 @@ function toggleSectorField() {
   var campo = document.getElementById('campo-sector');
   if (campo) campo.style.display = (rol === 'responsable') ? 'flex' : 'none';
   var campoSede = document.getElementById('campo-sede-coord');
-  if (campoSede) campoSede.style.display = (rol === 'coordinador') ? 'flex' : 'none';
+  if (campoSede) campoSede.style.display = (rol === 'coordinador' || rol === 'direccion') ? 'flex' : 'none';
+  var labelSede = document.getElementById('label-sede-coord');
+  if (labelSede) labelSede.textContent = rol === 'coordinador' ? 'Sede que coordina' : 'Sede que dirige';
+  var campoTodas = document.getElementById('campo-sede-todas');
+  if (campoTodas) campoTodas.style.display = (rol === 'direccion') ? 'block' : 'none';
+}
+
+function toggleSedeTodas() {
+  var chk = document.getElementById('u-sede-todas');
+  var sel = document.getElementById('u-sede-coord');
+  if (!chk || !sel) return;
+  if (chk.checked) { sel.value = ''; sel.disabled = true; }
+  else { sel.disabled = false; }
 }
 
 function saveUser() {
@@ -2666,9 +2672,12 @@ function saveUser() {
   var mailRec = (document.getElementById('u-mail-recuperacion')||{}).value.trim();
   var sector = (document.getElementById('u-sector')||{}).value.trim();
   var sedeCoord = (document.getElementById('u-sede-coord')||{}).value || '';
+  var sedeTodas = (document.getElementById('u-sede-todas')||{}).checked || false;
   if (!email || !nombre || !pass) { alert('Completá los campos obligatorios.'); return; }
   if (rol === 'coordinador' && !sedeCoord) { alert('Seleccioná la sede que coordina.'); return; }
-  var user = { email:email, nombre:nombre, apellido:apellido, pass:pass, rol:rol, mail_recuperacion:mailRec, sector:sector, sede: rol === 'coordinador' ? sedeCoord : '' };
+  if (rol === 'direccion' && !sedeCoord && !sedeTodas) { alert('Seleccioná la sede que dirige, o marcá "Ve todas las sedes".'); return; }
+  var sedeFinal = (rol === 'coordinador') ? sedeCoord : (rol === 'direccion' ? (sedeTodas ? '' : sedeCoord) : '');
+  var user = { email:email, nombre:nombre, apellido:apellido, pass:pass, rol:rol, mail_recuperacion:mailRec, sector:sector, sede: sedeFinal };
   db.collection('usuarios').doc(email).set(user).then(function(){
     logTrazabilidad(editingUserId ? 'Usuario editado' : 'Usuario creado', email);
     closeUserModal();
@@ -2808,8 +2817,8 @@ function checkCustomUsers(email, pass) {
     rol: u.rol||'admin',
     // email real para matching con casos (responsables)
     email_real: (u.mail_recuperacion||'').toLowerCase() || email,
-    // sede: solo aplica a coordinadores de centro
-    sede: u.rol === 'coordinador' ? (u.sede||null) : null
+    // sede: aplica a coordinadores de centro y a Dirección (null/'' = ve todas las sedes)
+    sede: (u.rol === 'coordinador' || u.rol === 'direccion') ? (u.sede||null) : null
   };
   localStorage.setItem(SESSION_KEY,JSON.stringify(currentUser));
   return true;
@@ -2907,9 +2916,12 @@ function renderResponsableTablero() {
 function getSedeFiltroDireccion() {
   if (currentUser.rol === 'coordinador') return { modo: 'sedes', sedes: [currentUser.sede] };
   var email = (currentUser.email||'').toLowerCase();
-  if (email === 'direccionsaav@cemic.edu.ar' || email === 'dirsaav') return { modo: 'sedes', sedes: ['Saavedra'] };
+  // Cuentas hardcodeadas con reglas especiales (multi-sede)
+  if (email === 'direccionsaav@cemic.edu.ar') return { modo: 'sedes', sedes: ['Saavedra'] };
   if (email === 'direccionpombo@cemic.edu.ar') return { modo: 'sedes', sedes: ['Pombo', 'Las Heras'] };
-  // dirmedica / resto: ve TODAS las sedes (incluidas Saavedra, Pombo y Las Heras)
+  if (email === 'dirmedica@cemic.edu.ar') return { modo: 'todas' };
+  // Dirección creada desde Usuarios (Firestore): usa la sede guardada, o todas si no tiene
+  if (currentUser.sede) return { modo: 'sedes', sedes: [currentUser.sede] };
   return { modo: 'todas' };
 }
 
@@ -4714,27 +4726,19 @@ function cerrarCaso() {
 }
 
 // ─── RESPONSABLES ──────────────────────────────────────────
-var RESPONSABLES = {
-  'Crimi':  { email: 'aperrot@cemic.edu.ar',   area: 'Ginecologia' },
-  'Gobbi':  { email: 'andyperrot@cemic.edu.ar', area: 'Traumatologia' }
-};
+// (los 2 responsables hardcodeados —Crimi y Gobbi— fueron eliminados;
+// ahora todos los responsables se gestionan desde Usuarios, en Firestore)
 
 function getResponsableRealEmail(loginEmail) {
   // Busca el mail real (mail_recuperacion) del responsable por su usuario de login
   var users = getAdminUsers();
   var u = users.find(function(x){ return x.email === loginEmail && x.rol === 'responsable'; });
   if (u && u.mail_recuperacion) return u.mail_recuperacion;
-  // Fallback: buscar en RESPONSABLES hardcodeados
-  var keys = Object.keys(RESPONSABLES);
-  for (var i = 0; i < keys.length; i++) {
-    if (RESPONSABLES[keys[i]].email === loginEmail) return loginEmail;
-  }
   return loginEmail; // si no encuentra, usa el mismo valor
 }
 
 function getResponsablesDinamicos() {
   var mapa = {};
-  Object.keys(RESPONSABLES).forEach(function(k){ mapa[k] = RESPONSABLES[k]; });
   var custom = getAdminUsers().filter(function(u){ return u.rol === 'responsable'; });
   custom.forEach(function(u) {
     var key = u.nombre || u.email;
