@@ -939,9 +939,14 @@
         <div class="user-welcome" id="user-welcome-title">Bienvenido/a</div>
         <div class="user-welcome-sub" id="user-welcome-sub">Estas son las presentaciones derivadas a vos.</div>
       </div>
-      <button id="btn-archivados-userview" onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
-        🗃️ Casos Archivados
-      </button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="btn-nuevo-caso-coordinador" onclick="openModalCoordinador()" style="display:none;background:var(--green-main);border:none;color:white;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;align-items:center;gap:6px">
+          + Nuevo Caso
+        </button>
+        <button id="btn-archivados-userview" onclick="openArchivados()" style="background:#f3f4f6;border:1.5px solid #d1d5db;color:#374151;border-radius:10px;padding:9px 18px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:6px">
+          🗃️ Casos Archivados
+        </button>
+      </div>
     </div>
     <div class="user-stats" id="user-stats-bar"></div>
     <div id="user-cases-list">
@@ -1083,6 +1088,45 @@
   </div>
 </div>
 
+<!-- MODAL NUEVO CASO — COORDINADOR DE CENTRO (libro de quejas simplificado) -->
+<div class="modal-overlay" id="modal-coordinador-overlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">📓 Nuevo Caso — Libro de Quejas</div>
+    <div class="form-grid">
+      <div class="form-section-divider"><span>📅 Fecha y Lugar</span></div>
+      <div class="form-group"><label>Fecha de Ingreso <span class="req">*</span></label><input type="date" id="fc-fecha"></div>
+      <div class="form-group"><label>Hora de Ingreso <span class="req">*</span></label><input type="time" id="fc-hora"></div>
+
+      <div class="form-section-divider"><span>👤 Datos del Presentante</span></div>
+      <div class="form-group"><label>Apellido <span class="req">*</span></label><input type="text" id="fc-apellido" placeholder="García"></div>
+      <div class="form-group"><label>Nombre <span class="req">*</span></label><input type="text" id="fc-nombre" placeholder="María"></div>
+      <div class="form-group"><label>DNI <span class="req">*</span></label><input type="text" id="fc-dni" placeholder="12345678"></div>
+      <div class="form-group"><label>Mail del Presentante <span class="req">*</span></label><input type="email" id="fc-mail" placeholder="mail@ejemplo.com"></div>
+      <div class="form-group"><label>Teléfono</label><input type="text" id="fc-telefono" placeholder="11-1234-5678"></div>
+
+      <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
+      <div class="form-group"><label>N° de Folio</label><input type="text" id="fc-folio" placeholder="Ej: 00123"></div>
+      <div class="form-group full">
+        <label>📎 Adjuntar Archivos (hasta 3)</label>
+        <div id="fc-adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        <div style="margin-top:8px">
+          <label id="fc-btn-agregar-adjunto" style="background:var(--green-light);border:1.5px solid var(--green-main);color:var(--green-main);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:600;display:inline-flex;align-items:center;gap:6px">
+            📁 Agregar archivo
+            <input type="file" id="fc-adjunto-input" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleAdjuntoCoordinador(this)">
+          </label>
+          <span style="font-size:0.72rem;color:var(--text-muted);margin-left:10px">PDF, JPG, PNG · Máx. 5MB por archivo · Hasta 3 archivos</span>
+        </div>
+      </div>
+      <div class="form-group full"><label>Relato del Hecho</label><textarea id="fc-relato" placeholder="Descripción del caso..."></textarea></div>
+    </div>
+    <div id="fc-validation-msg" style="color:#dc2626;font-size:0.82rem;background:#fff5f5;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;margin-top:12px;display:none">⚠️ Completá todos los campos obligatorios marcados con <strong>*</strong></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModalCoordinador()">Cancelar</button>
+      <button class="btn" onclick="saveCasoCoordinador()">💾 Guardar caso</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ARCHIVADOS -->
 <div class="modal-overlay" id="archivados-modal">
   <div class="modal" style="max-width:700px">
@@ -1120,6 +1164,7 @@
 
 
       <div class="form-section-divider"><span>📝 Detalle del Caso</span></div>
+      <div class="form-group"><label>N° de Folio</label><input type="text" id="f-folio" placeholder="Ej: 00123"></div>
       <div class="form-group full" id="campo-adjunto" style="display:none">
         <label>📎 Adjuntar Archivos (hasta 3)</label>
         <div id="adjuntos-lista" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
@@ -1314,6 +1359,11 @@
 // Admin: admin / 1234
 // Responsables: su email cargado en el caso / 1234
 var SESSION_KEY = 'cemic_session_v1';
+// Coordinadores de Centro: uno por sede. Login = su mail, contraseña 1234 por defecto.
+// Para agregar más, sumar entradas acá: 'mail@dominio': { nombre: 'Coord. Nombre', sede: 'NombreSede' }
+var COORDINADORES_CENTRO = {
+  'clarasalgado@gmail.com': { nombre: 'Coordinadora Saavedra', sede: 'Saavedra' }
+};
 var STORAGE_KEY = 'cemic_quejas_v3';
 
 // ─── FIREBASE ──────────────────────────────────────────────
@@ -1998,6 +2048,18 @@ function doLogin() {
     return;
   }
 
+  // Coordinadores de Centro (uno por sede; agregar más en COORDINADORES_CENTRO)
+  if (COORDINADORES_CENTRO[email]) {
+    const p = passwords[email] || '1234';
+    if (pass !== p) { document.getElementById('login-error').classList.add('show'); return; }
+    var coordInfo = COORDINADORES_CENTRO[email];
+    currentUser = { email: email, nombre: coordInfo.nombre, rol: 'coordinador', sede: coordInfo.sede };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    document.getElementById('login-error').classList.remove('show');
+    showApp();
+    return;
+  }
+
   // Admin hardcodeado (pantalla completa sin borrar)
   if (email === 'admin') {
     const adminPass = passwords['admin'] || '1234';
@@ -2088,8 +2150,23 @@ function showApp() {
     if (btnCasosDir) btnCasosDir.style.display = '';
     var btnArchDir = document.getElementById('btn-archivados-userview');
     if (btnArchDir) btnArchDir.setAttribute('onclick', 'openArchivadosAdmin()');
+    var btnNuevoCasoCoord0 = document.getElementById('btn-nuevo-caso-coordinador');
+    if (btnNuevoCasoCoord0) btnNuevoCasoCoord0.style.display = 'none';
     switchDirTab('gestion');
     loadData(function() { renderDireccionView(); updateTimestamp(); startRealtimeListener(); });
+  } else if (currentUser.rol === 'coordinador') {
+    document.querySelector('main').style.display = 'none';
+    document.getElementById('user-view').classList.add('active');
+    var dirTabsBarC = document.getElementById('dir-tabs-bar');
+    if (dirTabsBarC) dirTabsBarC.style.display = 'flex';
+    var btnCasosCoord = document.getElementById('dir-tab-btn-casos');
+    if (btnCasosCoord) btnCasosCoord.style.display = ''; // sí ve "Casos" (de su propia sede)
+    var btnArchDirC = document.getElementById('btn-archivados-userview');
+    if (btnArchDirC) btnArchDirC.setAttribute('onclick', 'openArchivados()');
+    var btnNuevoCasoCoord = document.getElementById('btn-nuevo-caso-coordinador');
+    if (btnNuevoCasoCoord) btnNuevoCasoCoord.style.display = 'inline-flex';
+    switchDirTab('gestion');
+    loadData(function() { renderUserView(); updateTimestamp(); startRealtimeListener(); });
   } else if (currentUser.rol === 'admin' || currentUser.rol === 'readonly') {
     document.querySelector('main').style.display = 'block';
     var uvEl = document.getElementById('user-view');
@@ -2124,7 +2201,9 @@ function showApp() {
     var dirTabsBar2 = document.getElementById('dir-tabs-bar');
     if (dirTabsBar2) dirTabsBar2.style.display = 'flex';
     var btnCasosResp = document.getElementById('dir-tab-btn-casos');
-    if (btnCasosResp) btnCasosResp.style.display = 'none'; // "Casos" (por sede) es exclusivo de Dirección
+    if (btnCasosResp) btnCasosResp.style.display = 'none'; // "Casos" (por sede) es exclusivo de Dirección/Coordinador
+    var btnNuevoCasoCoord2 = document.getElementById('btn-nuevo-caso-coordinador');
+    if (btnNuevoCasoCoord2) btnNuevoCasoCoord2.style.display = 'none';
     var btnArchDir2 = document.getElementById('btn-archivados-userview');
     if (btnArchDir2) btnArchDir2.setAttribute('onclick', 'openArchivados()');
     switchDirTab('gestion');
@@ -2613,10 +2692,45 @@ function switchDirTab(tab) {
     if (el) el.style.display = (t===tab) ? 'block' : 'none';
     if (btn) btn.classList.toggle('active', t===tab);
   });
-  var esDireccion = currentUser && currentUser.rol === 'direccion';
-  if (tab === 'gestion') { esDireccion ? renderDireccionView() : renderUserView(); }
+  var rol = currentUser && currentUser.rol;
+  if (tab === 'gestion') { rol === 'direccion' ? renderDireccionView() : renderUserView(); }
   if (tab === 'casos') renderDireccionCasos();
-  if (tab === 'tablero') { esDireccion ? renderDireccionTablero() : renderResponsableTablero(); }
+  if (tab === 'tablero') {
+    if (rol === 'direccion') renderDireccionTablero();
+    else if (rol === 'coordinador') renderCoordinadorTablero();
+    else renderResponsableTablero();
+  }
+}
+
+function renderCoordinadorTablero() {
+  var cont = document.getElementById('dir-tab-content-tablero');
+  if (!cont) return;
+  var sede = currentUser.sede;
+  var casosSede = data.filter(function(d){ return d.sede === sede; });
+  var total = casosSede.length;
+  var cerrados = casosSede.filter(function(d){ return d.estado === 'Cerrado'; }).length;
+  var criticos = casosSede.filter(function(d){ return (d.criticidad==='Crítica'||d.criticidad==='Evento Crítico'||d.tipo==='Caso Crítico') && d.estado!=='Cerrado'; }).length;
+  var vencidos = casosSede.filter(function(d){ return isVencido(d.vencimiento, d.estado); }).length;
+  var noProcedente = casosSede.filter(function(d){ return d.criticidad==='No procedente'; }).length;
+  var conCierre = casosSede.filter(function(d){ return d.estado==='Cerrado' && d.fecha_cierre && d.fecha; });
+  var promDias = conCierre.length > 0
+    ? (conCierre.reduce(function(acc,d){ return acc + Math.max(0, Math.round((new Date(d.fecha_cierre)-new Date(d.fecha+'T00:00:00'))/86400000)); }, 0) / conCierre.length).toFixed(1)
+    : null;
+  function kpiCard(icon, label, value, color) {
+    return '<div style="background:white;border-radius:10px;padding:16px;border-top:3px solid '+color+'">' +
+      '<div style="font-size:1.8rem;font-weight:700;color:'+color+'">'+value+'</div>' +
+      '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">'+icon+' '+label+'</div></div>';
+  }
+  cont.innerHTML = '<div style="background:var(--surface2);border-radius:12px;padding:24px;margin-top:8px">' +
+    '<div style="font-weight:700;font-size:1.05rem;color:var(--green-dark);margin-bottom:16px">📊 Indicadores — '+sede+'</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">' +
+    kpiCard('📋','Total presentaciones', total, '#1e7a44') +
+    kpiCard('✅','Cerrados', cerrados, '#065f46') +
+    kpiCard('🚨','Críticos activos', criticos, '#991b1b') +
+    kpiCard('⚠️','Vencidos', vencidos, '#c2410c') +
+    kpiCard('➖','No procedentes', noProcedente, '#6b7280') +
+    (promDias ? kpiCard('⏱','Tiempo promedio gestión', promDias+' días', '#0e7a4e') : '') +
+    '</div></div>';
 }
 
 function renderResponsableTablero() {
@@ -2654,9 +2768,10 @@ function renderResponsableTablero() {
     '</div></div>';
 }
 
-// Determina qué sede(s) le corresponde ver a este usuario de Dirección
-// (se usa tanto en "Casos en Gestión" como en "Casos")
+// Determina qué sede(s) le corresponde ver a este usuario en la pestaña "Casos"
+// (se usa para Dirección y para Coordinadores de Centro)
 function getSedeFiltroDireccion() {
+  if (currentUser.rol === 'coordinador') return { modo: 'sedes', sedes: [currentUser.sede] };
   var email = (currentUser.email||'').toLowerCase();
   if (email === 'direccionsaav@cemic.edu.ar' || email === 'dirsaav') return { modo: 'sedes', sedes: ['Saavedra'] };
   if (email === 'direccionpombo@cemic.edu.ar') return { modo: 'sedes', sedes: ['Pombo', 'Las Heras'] };
@@ -3480,10 +3595,13 @@ function getColorStatus(s) {
   return ({'Cerrado':'#065f46','Respuesta del Responsable':'#065f46','Derivado a Responsable':'#92400e','Pendiente':'#92400e','Vencido':'#991b1b','Caso Nuevo':'#5b21b6'})[s]||'#6b7280';
 }
 function origenBadge(d) {
-  // Identifica visualmente si el caso fue cargado por el paciente (QR / formulario público)
-  // o por un admin/gestor desde el panel ("+ Nuevo caso")
+  // Identifica visualmente si el caso fue cargado por el paciente (QR / formulario público),
+  // por un coordinador de centro (libro de quejas), o por un admin/gestor desde el panel
   if (d.origen === 'formulario_publico') {
     return '<span title="Cargado por el paciente vía QR" style="margin-left:5px;font-size:0.62rem;background:#e0f2fe;color:#075985;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">📱 QR</span>';
+  }
+  if (d.origen === 'coordinador') {
+    return '<span title="Cargado por el coordinador de centro (libro de quejas)" style="margin-left:5px;font-size:0.62rem;background:#fef3c7;color:#92400e;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">📓 Libro de Quejas</span>';
   }
   return '<span title="Cargado por admin/gestor desde el panel" style="margin-left:5px;font-size:0.62rem;background:#f3f4f6;color:#374151;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">🧑‍💼 Admin</span>';
 }
@@ -3643,6 +3761,7 @@ function renderTabla() {
               <div class="detalle-label">👤 Paciente</div>
               <div class="detalle-val"><strong>${d.apellido||''} ${d.nombre||''}</strong>${d.dni?' · DNI: '+d.dni:''}${d.telefono?' · Tel: '+d.telefono:''}</div>
               ${d.mail_presentante?`<div class="detalle-val" style="font-size:0.78rem;color:var(--text-muted)">${d.mail_presentante}</div>`:''}
+              ${d.folio?`<div class="detalle-val" style="font-size:0.78rem;color:var(--text-muted)">📓 N° de Folio: <strong>${d.folio}</strong></div>`:''}
             </div>
             <div>
               <div class="detalle-label">📋 Relato del Hecho</div>
@@ -3726,6 +3845,142 @@ function toggleDetalle(id) {
     row.style.display = 'table-row';
     row.previousElementSibling.classList.add('caso-row-active');
   }
+}
+
+// ─── NUEVO CASO — COORDINADOR DE CENTRO (libro de quejas) ──
+var adjuntosDataCoordinador = [];
+
+function openModalCoordinador() {
+  var today = new Date().toISOString().split('T')[0];
+  var nowTime = new Date().toTimeString().slice(0,5);
+  document.getElementById('fc-fecha').value = today;
+  document.getElementById('fc-hora').value = nowTime;
+  document.getElementById('fc-apellido').value = '';
+  document.getElementById('fc-nombre').value = '';
+  document.getElementById('fc-dni').value = '';
+  document.getElementById('fc-mail').value = '';
+  document.getElementById('fc-telefono').value = '';
+  document.getElementById('fc-folio').value = '';
+  document.getElementById('fc-relato').value = '';
+  ['fc-fecha','fc-hora','fc-apellido','fc-nombre','fc-dni','fc-mail'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.classList.remove('field-error');
+  });
+  document.getElementById('fc-validation-msg').style.display = 'none';
+  adjuntosDataCoordinador = [];
+  renderAdjuntosListCoordinador();
+  document.getElementById('modal-coordinador-overlay').classList.add('active');
+}
+
+function closeModalCoordinador() {
+  document.getElementById('modal-coordinador-overlay').classList.remove('active');
+}
+
+function renderAdjuntosListCoordinador() {
+  var lista = document.getElementById('fc-adjuntos-lista');
+  if (!lista) return;
+  lista.innerHTML = adjuntosDataCoordinador.map(function(a, i) {
+    var isImg = a.tipo && a.tipo.startsWith('image/');
+    return '<div style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px">' +
+      (isImg ? '<img src="'+a.base64+'" style="height:36px;width:36px;object-fit:cover;border-radius:4px">' : '<span style="font-size:1.4rem">📄</span>') +
+      '<span style="font-size:0.82rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nombre+'</span>' +
+      '<button type="button" onclick="quitarAdjuntoCoordinador('+i+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:0.8rem;padding:0;font-family:DM Sans,sans-serif">✕ Quitar</button>' +
+    '</div>';
+  }).join('');
+  var btn = document.getElementById('fc-btn-agregar-adjunto');
+  if (btn) btn.style.display = adjuntosDataCoordinador.length >= 3 ? 'none' : 'inline-flex';
+  var inp = document.getElementById('fc-adjunto-input'); if (inp) inp.value = '';
+}
+
+function quitarAdjuntoCoordinador(idx) {
+  adjuntosDataCoordinador.splice(idx, 1);
+  renderAdjuntosListCoordinador();
+}
+
+function handleAdjuntoCoordinador(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (adjuntosDataCoordinador.length >= 3) { alert('Ya cargaste el máximo de 3 archivos.'); input.value = ''; return; }
+  if (file.size > 5 * 1024 * 1024) { alert('El archivo supera los 5MB. Elegí uno más pequeño.'); input.value = ''; return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    adjuntosDataCoordinador.push({ base64: e.target.result, nombre: file.name, tipo: file.type });
+    renderAdjuntosListCoordinador();
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveCasoCoordinador() {
+  var required = ['fc-fecha','fc-hora','fc-apellido','fc-nombre','fc-dni','fc-mail'];
+  var valid = true;
+  required.forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el.value.trim()) { el.classList.add('field-error'); valid = false; }
+    else { el.classList.remove('field-error'); }
+  });
+  var msgEl = document.getElementById('fc-validation-msg');
+  if (!valid) { msgEl.style.display = 'block'; msgEl.innerHTML = '⚠️ Completá todos los campos obligatorios marcados en rojo.'; return; }
+
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var mail = document.getElementById('fc-mail').value.trim();
+  if (!emailRegex.test(mail)) {
+    document.getElementById('fc-mail').classList.add('field-error');
+    msgEl.style.display = 'block'; msgEl.textContent = '⚠️ El mail del presentante no tiene un formato válido.';
+    return;
+  }
+  msgEl.style.display = 'none';
+
+  casosRef.orderBy('id','desc').limit(1).get().then(function(snap) {
+    var maxId = 0;
+    snap.forEach(function(doc){ maxId = doc.data().id || 0; });
+    var nc = {
+      origen: 'coordinador',
+      fecha: document.getElementById('fc-fecha').value,
+      hora: document.getElementById('fc-hora').value,
+      sede: currentUser.sede,
+      servicio: '',
+      tipo: 'Queja / Reclamo',
+      motivo: '',
+      folio: document.getElementById('fc-folio').value.trim(),
+      apellido: document.getElementById('fc-apellido').value,
+      nombre: document.getElementById('fc-nombre').value,
+      dni: document.getElementById('fc-dni').value,
+      mail_presentante: mail,
+      telefono: document.getElementById('fc-telefono').value,
+      relato: document.getElementById('fc-relato').value,
+      gestiones: [{ sede: currentUser.sede, sector: '', motivo: '', motivo_otro: '', criticidad: 'Baja', responsable: '', responsable_email: '', responsable_email_real: '', vencimiento: '', respuesta: '', accion: '' }],
+      criticidad: 'Baja',
+      responsable: '', responsable_email: '', responsable_email_real: '',
+      estado: 'Caso Nuevo',
+      vencimiento: '',
+      obs_admin: '',
+      resumen_gestiones: '',
+      adjuntos: adjuntosDataCoordinador.slice(),
+      adjunto_base64: adjuntosDataCoordinador.length > 0 ? adjuntosDataCoordinador[0].base64 : null,
+      adjunto_nombre: adjuntosDataCoordinador.length > 0 ? adjuntosDataCoordinador[0].nombre : null,
+      adjunto_tipo:   adjuntosDataCoordinador.length > 0 ? adjuntosDataCoordinador[0].tipo   : null,
+      cargado_por: (currentUser.nombre||'') + ' (' + currentUser.email + ')'
+    };
+    nc.id = maxId + 1;
+    data.push(nc);
+    saveCaso(nc);
+    logTrazabilidad('Caso creado (Coordinador)', 'N° de Gestión: '+nc.id+' - '+nc.sede+' - '+(nc.apellido||'')+' '+(nc.nombre||'')+(nc.folio ? ' - Folio: '+nc.folio : ''));
+    closeModalCoordinador();
+    setTimeout(function(){
+      var popup = document.createElement('div');
+      popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:14px;padding:32px 40px;box-shadow:0 8px 40px rgba(0,0,0,0.18);z-index:9999;text-align:center;min-width:300px;border-top:5px solid #1e7a44';
+      popup.innerHTML = '<div style="font-size:2rem;margin-bottom:10px">✅</div>' +
+        '<div style="font-weight:700;font-size:1.1rem;color:#1e7a44;margin-bottom:8px">Caso ingresado con éxito</div>' +
+        '<div style="font-size:0.95rem;color:#374151">N° de Gestión: <strong>' + nc.id + '</strong></div>' +
+        '<button onclick="this.parentElement.remove()" style="margin-top:20px;padding:8px 28px;background:#1e7a44;color:white;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-family:DM Sans,sans-serif;font-weight:600">Aceptar</button>';
+      document.body.appendChild(popup);
+    }, 200);
+    // Refrescar la pestaña "Casos" si está siendo mostrada
+    var casosTabEl = document.getElementById('dir-tab-content-casos');
+    if (casosTabEl && casosTabEl.style.display !== 'none') renderDireccionCasos();
+  }).catch(function(e) {
+    console.error('Error creando caso (coordinador):', e);
+    alert('Ocurrió un error al guardar el caso. Probá de nuevo.');
+  });
 }
 
 function archivarCasoDir(id) {
@@ -4559,6 +4814,7 @@ function openModal(id) {
     if (btnGuardarM2) btnGuardarM2.style.display = '';
   }
   document.getElementById('f-relato').value     = v('relato');
+  var folioEl = document.getElementById('f-folio'); if (folioEl) folioEl.value = v('folio');
   // Tipo de Felicitación
   var tipoFelEl = document.getElementById('f-tipo-felicitacion');
   if (tipoFelEl) { tipoFelEl.value = d ? (d.tipo_felicitacion || '') : ''; }
@@ -4817,6 +5073,7 @@ function saveCase(modo) {
     estado:document.getElementById('f-estado').value,
     vencimiento: _g0.vencimiento || document.getElementById('f-vencimiento').value || '',
     relato:document.getElementById('f-relato').value,
+    folio: (document.getElementById('f-folio')||{}).value || '',
     respuesta: _g0.respuesta || '',
     accion: _g0.accion || '',
     fecha_cierre: (function(){
