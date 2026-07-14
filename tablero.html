@@ -5360,9 +5360,9 @@ function sendAvisoDerivacion(nc) {
   if (nc.origen === 'coordinador') {
     // Mensaje específico para casos cargados desde el Libro de Quejas
     mensaje = 'Estimado/a:\n' +
-      'Te informamos que tu presentación ha sido derivada al sector correspondiente para su análisis y seguimiento.\n' +
-      'N.° de Gestión: ' + nc.id + '\n' +
-      'Tu aporte es muy valioso para contribuir a la mejora continua de nuestros servicios\n' +
+      'Te informamos que tu presentación ha sido derivada al sector correspondiente para su análisis y seguimiento.\n\n' +
+      'N.° de Gestión: ' + nc.id + '\n\n' +
+      'Tu aporte es muy valioso para contribuir a la mejora continua de nuestros servicios.\n\n' +
       'Equipo de Experiencia del Paciente CEMIC';
   } else {
     mensaje = 'Tu presentación fue derivada al sector correspondiente para su análisis y seguimiento.\n\n' +
