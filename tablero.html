@@ -5356,15 +5356,26 @@ function sendAvisoDerivacion(nc) {
   if (!nc.mail_presentante || !nc.mail_presentante.trim()) return;
   if (!emailjsReady) return;
   var sede = (nc.gestiones && nc.gestiones[0] && nc.gestiones[0].sede) || nc.sede || '';
+  var mensaje;
+  if (nc.origen === 'coordinador') {
+    // Mensaje específico para casos cargados desde el Libro de Quejas
+    mensaje = 'Estimado/a:\n' +
+      'Te informamos que tu presentación ha sido derivada al sector correspondiente para su análisis y seguimiento.\n' +
+      'N.° de Gestión: ' + nc.id + '\n' +
+      'Tu aporte es muy valioso para contribuir a la mejora continua de nuestros servicios\n' +
+      'Equipo de Experiencia del Paciente CEMIC';
+  } else {
+    mensaje = 'Tu presentación fue derivada al sector correspondiente para su análisis y seguimiento.\n\n' +
+      'N° de Gestión: ' + nc.id + '\n\n' +
+      'Te contactaremos nuevamente ante cualquier novedad.\n\nEquipo de Experiencia del Paciente\nCEMIC';
+  }
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_CONFIRM, {
     to_email:  nc.mail_presentante.trim(),
     to_name:   ((nc.apellido||'') + ' ' + (nc.nombre||'')).trim() || 'Presentante',
     caso_id:   'N° de Gestión: ' + nc.id,
     caso_tipo: nc.tipo || '',
     caso_sede: sede,
-    message:   'Tu presentación fue derivada al sector correspondiente para su análisis y seguimiento.\n\n' +
-               'N° de Gestión: ' + nc.id + '\n\n' +
-               'Te contactaremos nuevamente ante cualquier novedad.\n\nEquipo de Experiencia del Paciente\nCEMIC',
+    message:   mensaje,
   }).catch(function(err){ console.warn('EmailJS aviso derivación:', err); });
 }
 
