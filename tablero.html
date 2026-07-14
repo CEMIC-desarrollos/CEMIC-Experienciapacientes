@@ -1977,7 +1977,7 @@ function doLogin() {
   }
 
   // Dirección Pombo
-  if (email === 'alanguasco@cemic.edu.ar') {
+  if (email === 'direccionpombo@cemic.edu.ar') {
     const p = passwords[email] || '1234';
     if (pass !== p) { document.getElementById('login-error').classList.add('show'); return; }
     currentUser = { email: email, nombre: 'Dirección Pombo', rol: 'direccion', sede: 'Pombo' };
@@ -2659,7 +2659,7 @@ function renderResponsableTablero() {
 function getSedeFiltroDireccion() {
   var email = (currentUser.email||'').toLowerCase();
   if (email === 'direccionsaav@cemic.edu.ar' || email === 'dirsaav') return { modo: 'sedes', sedes: ['Saavedra'] };
-  if (email === 'alanguasco@cemic.edu.ar') return { modo: 'sedes', sedes: ['Pombo', 'Las Heras'] };
+  if (email === 'direccionpombo@cemic.edu.ar') return { modo: 'sedes', sedes: ['Pombo', 'Las Heras'] };
   // dirmedica / resto: ve TODAS las sedes (incluidas Saavedra, Pombo y Las Heras)
   return { modo: 'todas' };
 }
@@ -4890,36 +4890,49 @@ function saveCase(modo) {
       // Si cambió obs_admin → enviar respuesta al presentante (solo baja/media)
       const obsAdminCambio = nc.obs_admin && nc.obs_admin !== casoAnterior.obs_admin;
       if (obsAdminCambio && !silencioso) sendRespuestaPresentante(data[idx]);
-      // Si cambió el responsable → enviar notificación al nuevo
-      // Se calcula gestión por gestión para no re-notificar a responsables ya avisados
+      // Si cambió el responsable, o la criticidad escaló/bajó → notificar
+      // Se calcula gestión por gestión para no re-notificar de más
       var gestionesANotificar = [];
+      var motivoPorGestion = {}; // gi -> 'nueva' | 'escalada' | 'bajada'
+      var NIVELES_ALTOS = ['Alta','Crítica','Evento Crítico'];
       (nc.gestiones||[]).forEach(function(g, gi) {
         var emailActual = g.responsable_email_real || g.responsable_email || '';
         if (!emailActual || !emailActual.includes('@')) return;
         var gAnterior = (casoAnterior.gestiones && casoAnterior.gestiones[gi]) || {};
         var emailAnterior = gAnterior.responsable_email_real || gAnterior.responsable_email || '';
         var emailYaNotificado = gAnterior.email_notificado || '';
+        var critActual = g.criticidad || '';
+        var critAnterior = gAnterior.criticidad || '';
+        var critCambio = critActual !== critAnterior;
+        var escalada = critCambio && NIVELES_ALTOS.indexOf(critActual) !== -1 && NIVELES_ALTOS.indexOf(critAnterior) === -1;
+        var bajada   = critCambio && NIVELES_ALTOS.indexOf(critAnterior) !== -1 && NIVELES_ALTOS.indexOf(critActual) === -1;
+
         if (forzarEnvio) {
           // "Enviar a responsable": notificar solo si este responsable (con este email) no fue notificado todavía
-          if (emailActual !== emailYaNotificado) gestionesANotificar.push(gi);
-        } else {
-          // Guardado no silencioso (flujo clásico): notificar solo si el email cambió respecto a lo guardado antes
-          if (emailActual !== emailAnterior) gestionesANotificar.push(gi);
+          if (emailActual !== emailYaNotificado) { gestionesANotificar.push(gi); motivoPorGestion[gi] = 'nueva'; }
+        } else if (emailActual !== emailAnterior) {
+          // Guardado no silencioso (flujo clásico): notificar si el email cambió respecto a lo guardado antes
+          gestionesANotificar.push(gi); motivoPorGestion[gi] = 'nueva';
+        } else if (escalada) {
+          // La criticidad subió a Alta/Crítica/Evento Crítico → avisar con urgencia
+          gestionesANotificar.push(gi); motivoPorGestion[gi] = 'escalada';
+        } else if (bajada) {
+          // La criticidad bajó a Baja/Media → recordarle al responsable que ahora debe responder
+          gestionesANotificar.push(gi); motivoPorGestion[gi] = 'bajada';
         }
       });
 
       var notifEnviada = false;
       if (!silencioso && gestionesANotificar.length > 0) {
         if (!nc.id) nc.id = editingId;
-        sendNotificationEmails(nc, gestionesANotificar);
+        sendNotificationEmails(nc, gestionesANotificar, motivoPorGestion);
         notifEnviada = true;
         // Persistir la marca de "ya notificado" en las gestiones correspondientes
         saveCaso(data[idx]);
       }
-      // Si cambió la criticidad a Crítica → enviar alerta a todos los responsables (no se aplica el filtro por gestión)
-      const criticidadCambioACritica = nc.criticidad === 'Crítica' && casoAnterior.criticidad !== 'Crítica';
+      // Si el TIPO pasa a "Caso Crítico" → enviar alerta a todos los responsables (caso especial)
       const tipoCasoCritico = nc.tipo === 'Caso Crítico' && casoAnterior.tipo !== 'Caso Crítico';
-      if (!silencioso && (criticidadCambioACritica || tipoCasoCritico) && !notifEnviada) {
+      if (!silencioso && tipoCasoCritico && !notifEnviada) {
         if (!nc.id) nc.id = editingId;
         sendNotificationEmails(nc);
         saveCaso(data[idx]);
@@ -5103,7 +5116,7 @@ function sendRespuestaPresentante(nc) {
   }).catch(function(err){ console.warn('EmailJS respuesta error:', err); });
 }
 
-function sendNotificationEmails(nc, gestionIndices) {
+function sendNotificationEmails(nc, gestionIndices, motivosPorGestion) {
 
   if (!emailjsReady) { console.warn('[NOTIF] emailjsReady=false, abortando'); return; }
   const appUrl = 'https://cemic-desarrollos.github.io/CEMIC-Experienciapacientes/tablero.html';
@@ -5124,9 +5137,18 @@ function sendNotificationEmails(nc, gestionIndices) {
     var templateResp = (g.criticidad==='Crítica'||g.criticidad==='Evento Crítico'||nc.tipo==='Caso Crítico') ? EMAILJS_TEMPLATE_CRITICO : EMAILJS_TEMPLATE_ID;
     var nivelCrit = (g.criticidad==='Crítica'?'Evento Crítico':g.criticidad) || 'Baja';
     var loginInfo = '\nUsuario: ' + (g.responsable_email || destEmail) + '\nContraseña: 1234';
-    var mensajeResp = esAltaOCritico
-      ? '⚠️ CASO ' + nivelCrit.toUpperCase() + (nivelCrit==='Alta' ? ' CRITICIDAD' : '') + ': Se le asignó un caso de criticidad ' + nivelCrit + ' que requiere atención inmediata.' + loginInfo
-      : 'Se le asignó una nueva presentación en el sistema.' + loginInfo;
+    var motivo = (motivosPorGestion && motivosPorGestion[gi]) || 'nueva';
+    var mensajeResp;
+    if (motivo === 'bajada') {
+      // La criticidad bajó a Baja/Media: ya no es urgente, pero ahora SÍ requiere respuesta obligatoria
+      mensajeResp = 'Se actualizó la criticidad de este caso a "' + nivelCrit + '". A partir de ahora es obligatorio que completes tu respuesta para poder cerrarlo.' + loginInfo;
+    } else if (esAltaOCritico) {
+      mensajeResp = motivo === 'escalada'
+        ? '⚠️ CASO ' + nivelCrit.toUpperCase() + (nivelCrit==='Alta' ? ' CRITICIDAD' : '') + ': Este caso fue actualizado a criticidad ' + nivelCrit + ' y requiere atención inmediata.' + loginInfo
+        : '⚠️ CASO ' + nivelCrit.toUpperCase() + (nivelCrit==='Alta' ? ' CRITICIDAD' : '') + ': Se le asignó un caso de criticidad ' + nivelCrit + ' que requiere atención inmediata.' + loginInfo;
+    } else {
+      mensajeResp = 'Se le asignó una nueva presentación en el sistema.' + loginInfo;
+    }
 
     emailjs.send(EMAILJS_SERVICE_ID, templateResp, {
       to_email:  destEmail,
@@ -5145,8 +5167,8 @@ function sendNotificationEmails(nc, gestionIndices) {
     if (esAltaOCritico) {
       var EMAILS_DIRECCION = {
         'Saavedra': ['direccionsaav@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
-        'Pombo': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
-        'Las Heras': ['alanguasco@cemic.edu.ar', 'dirmedica@cemic.edu.ar']
+        'Pombo': ['direccionpombo@cemic.edu.ar', 'dirmedica@cemic.edu.ar'],
+        'Las Heras': ['direccionpombo@cemic.edu.ar', 'dirmedica@cemic.edu.ar']
       };
       var emailsDir = EMAILS_DIRECCION[g.sede||nc.sede] || ['dirmedica@cemic.edu.ar'];
       // Template: solo usar el de "Crítico" para Crítica/Evento Crítico/Caso Crítico real.
