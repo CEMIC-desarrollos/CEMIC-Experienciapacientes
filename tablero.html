@@ -1110,6 +1110,17 @@
   </div>
 </div>
 
+<!-- MODAL VER CASO (solo lectura) — Dirección -->
+<div class="modal-overlay" id="modal-ver-caso-overlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="ver-caso-titulo">Ver Caso</div>
+    <div id="ver-caso-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeVerCasoDireccion()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NUEVO CASO — COORDINADOR DE CENTRO (libro de quejas simplificado) -->
 <div class="modal-overlay" id="modal-coordinador-overlay">
   <div class="modal" style="max-width:640px">
@@ -2189,7 +2200,7 @@ function showApp() {
         document.getElementById('tab-casos').classList.remove('active');
       }
     })();
-    loadData(function() { refresh(); syncMenusToForm(); updateTimestamp(); startRealtimeListener(); });
+    loadData(function() { refresh(); syncMenusToForm(); actualizarFiltrosConEstructuraReal(); updateTimestamp(); startRealtimeListener(); });
   } else {
     document.querySelector('main').style.display = 'none';
     document.getElementById('user-view').classList.add('active');
@@ -2926,7 +2937,7 @@ function getSedeFiltroDireccion() {
 }
 
 function limpiarFiltrosDireccionCasos() {
-  ['dir-casos-buscar','dir-casos-sede','dir-casos-tipo','dir-casos-estado'].forEach(function(id){
+  ['dir-casos-buscar','dir-casos-sede','dir-casos-tipo','dir-casos-estado','dir-casos-criticidad','dir-casos-vencimiento','dir-casos-tipo-reclamo','dir-casos-motivo','dir-casos-servicio','dir-casos-fecha-desde','dir-casos-fecha-hasta'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   renderDireccionCasos();
@@ -2938,19 +2949,42 @@ function renderDireccionCasos() {
   var filtro = getSedeFiltroDireccion();
 
   // Leer filtros (si ya existen en el DOM, de un render anterior)
-  var fBuscar = ((document.getElementById('dir-casos-buscar')||{}).value||'').toLowerCase();
-  var fSede   = (document.getElementById('dir-casos-sede')||{}).value||'';
-  var fTipo   = (document.getElementById('dir-casos-tipo')||{}).value||'';
-  var fEstado = (document.getElementById('dir-casos-estado')||{}).value||'';
+  var fBuscar   = ((document.getElementById('dir-casos-buscar')||{}).value||'').toLowerCase();
+  var fSede     = (document.getElementById('dir-casos-sede')||{}).value||'';
+  var fTipo     = (document.getElementById('dir-casos-tipo')||{}).value||'';
+  var fEstado   = (document.getElementById('dir-casos-estado')||{}).value||'';
+  var fCrit     = (document.getElementById('dir-casos-criticidad')||{}).value||'';
+  var fVenc     = (document.getElementById('dir-casos-vencimiento')||{}).value||'';
+  var fTipoRec  = (document.getElementById('dir-casos-tipo-reclamo')||{}).value||'';
+  var fMotivo   = (document.getElementById('dir-casos-motivo')||{}).value||'';
+  var fServicio = (document.getElementById('dir-casos-servicio')||{}).value||'';
+  var fDesde    = (document.getElementById('dir-casos-fecha-desde')||{}).value||'';
+  var fHasta    = (document.getElementById('dir-casos-fecha-hasta')||{}).value||'';
+
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var en48 = new Date(hoy); en48.setDate(en48.getDate() + 2);
 
   var casos = data.filter(function(d) {
     var enMiAlcance = filtro.modo === 'todas' ? true : filtro.sedes.indexOf(d.sede) !== -1;
     if (!enMiAlcance) return false;
     var ms = !fBuscar || [d.apellido,d.nombre,d.servicio,d.motivo,d.responsable,d.sede,d.relato,String(d.id)].some(function(v){ return (v||'').toLowerCase().includes(fBuscar); });
-    return ms
-      && (!fSede   || d.sede === fSede)
-      && (!fTipo   || d.tipo === fTipo)
-      && (!fEstado || d.estado === fEstado);
+    var vencOk = true;
+    if (fVenc && d.vencimiento && d.estado !== 'Cerrado') {
+      var vDate = new Date(d.vencimiento + 'T00:00:00');
+      if (fVenc === 'vencido') vencOk = vDate < hoy;
+      if (fVenc === '48hs') vencOk = vDate >= hoy && vDate <= en48;
+      if (fVenc === 'novencido') vencOk = vDate >= hoy;
+    } else if (fVenc === 'vencido' || fVenc === '48hs') { vencOk = false; }
+    return ms && vencOk
+      && (!fSede     || d.sede === fSede)
+      && (!fTipo     || d.tipo === fTipo)
+      && (!fEstado   || d.estado === fEstado)
+      && (!fCrit     || d.criticidad === fCrit)
+      && (!fTipoRec  || d.tipo_reclamo === fTipoRec)
+      && (!fMotivo   || d.motivo_reclamo === fMotivo || (d.motivo||'').includes(fMotivo))
+      && (!fServicio || d.servicio === fServicio)
+      && (!fDesde    || (d.fecha && d.fecha >= fDesde))
+      && (!fHasta    || (d.fecha && d.fecha <= fHasta));
   }).sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id; });
 
   // Panel de filtros — igual estética que la pestaña Casos de admin/superadmin
@@ -2962,6 +2996,8 @@ function renderDireccionCasos() {
     sedeSelectHtml = '<option value="">Todas mis sedes</option>' +
       filtro.sedes.map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
   }
+  var servicios = getServiciosUnicos();
+  var motivos = getMotivosReclamoUnicos();
 
   var html = '<div class="filter-panel">' +
     '<div class="filter-panel-header">🔍 Filtrar casos</div>' +
@@ -2980,37 +3016,137 @@ function renderDireccionCasos() {
           '<option value="">Todos los estados</option>' +
           ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
         '</select></div>' +
-      '<div class="filter-group" style="justify-content:flex-end"><label>&nbsp;</label>' +
+      '<div class="filter-group"><label>Criticidad</label>' +
+        '<select id="dir-casos-criticidad" onchange="renderDireccionCasos()">' +
+          '<option value="">Toda criticidad</option>' +
+          CRITICIDADES_GESTION.map(function(s){ return '<option'+(fCrit===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Vencimiento</label>' +
+        '<select id="dir-casos-vencimiento" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos</option>' +
+          '<option value="vencido"'+(fVenc==='vencido'?' selected':'')+'>⛔ Vencidos</option>' +
+          '<option value="48hs"'+(fVenc==='48hs'?' selected':'')+'>⚠️ Próximos a vencer (48hs)</option>' +
+          '<option value="novencido"'+(fVenc==='novencido'?' selected':'')+'>✅ No vencidos</option>' +
+        '</select></div>' +
+      '<div class="filter-group"><label>Tipo de Reclamo</label>' +
+        '<select id="dir-casos-tipo-reclamo" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos</option>' +
+          TIPOS_RECLAMO_LIST.map(function(s){ return '<option'+(fTipoRec===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Motivo</label>' +
+        '<select id="dir-casos-motivo" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos los motivos</option>' +
+          motivos.map(function(s){ return '<option'+(fMotivo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Servicio</label>' +
+        '<select id="dir-casos-servicio" onchange="renderDireccionCasos()">' +
+          '<option value="">Todos los servicios</option>' +
+          servicios.map(function(s){ return '<option'+(fServicio===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Fecha desde</label>' +
+        '<input type="date" id="dir-casos-fecha-desde" value="'+fDesde+'" onchange="renderDireccionCasos()"></div>' +
+      '<div class="filter-group"><label>Fecha hasta</label>' +
+        '<input type="date" id="dir-casos-fecha-hasta" value="'+fHasta+'" onchange="renderDireccionCasos()"></div>' +
+      '<div class="filter-group" style="justify-content:flex-end">' +
         '<button class="btn btn-ghost" onclick="limpiarFiltrosDireccionCasos()" style="width:100%">✕ Limpiar filtros</button></div>' +
     '</div></div>';
 
-  html += '<div class="full-panel"><div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--green-pale)">' +
+  html += '<div class="full-panel"><div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--green-pale);flex-wrap:wrap;gap:8px">' +
     '<div class="toolbar-title">📋 <span>'+casos.length+' caso'+(casos.length!==1?'s':'')+'</span></div>' +
+    '<button class="btn btn-outline" onclick="exportarExcelDireccion()" style="font-size:0.8rem;padding:7px 14px">⬇️ Exportar Excel</button>' +
   '</div>';
 
   if (casos.length === 0) {
-    html += '<div class="empty-state">No hay casos registrados para tu sede.</div></div>';
+    html += '<div class="empty-state">No hay casos registrados para este filtro.</div></div>';
     cont.innerHTML = html;
     return;
   }
 
   html += '<div class="table-wrapper"><table><thead><tr>' +
-    '<th>ID</th><th>Fecha</th><th>Sede/Servicio</th><th>Tipo</th><th>Paciente</th><th>Estado</th><th>Responsable</th><th>Gestor</th>' +
+    '<th>ID</th><th>Fecha</th><th>Sede/Servicio</th><th>Tipo</th><th>Paciente</th><th>Criticidad</th><th>Estado</th><th>Responsable</th><th>Gestor</th><th></th>' +
     '</tr></thead><tbody>' +
     casos.map(function(d) {
+      var ck = (d.criticidad||'').replace('é','e').replace('í','i');
       return '<tr>' +
         '<td style="font-size:0.78rem"><strong>#'+d.id+'</strong>'+origenBadge(d)+'</td>' +
         '<td style="font-size:0.74rem;white-space:nowrap">'+(d.fecha||'—').replace('2026-','').replace('2025-','')+(d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?'<br><span style="font-size:0.65rem;color:#065f46;font-weight:600">🗓 '+d.fecha_cierre+'</span>':'')+'</td>' +
         '<td style="font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td><span class="'+getBadgeClass(d.tipo)+'" style="font-size:0.65rem;padding:2px 5px">'+(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')+'</span></td>' +
         '<td style="font-size:0.76rem">'+(d.apellido||'')+'<br><span style="color:var(--text-muted);font-size:0.7rem">'+(d.nombre||'')+'</span></td>' +
+        '<td><span class="crit-badge '+ck+'" style="font-size:0.68rem">'+(d.criticidad||'—')+'</span></td>' +
         '<td style="white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(d.vencimiento,d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':'')+'</td>' +
         '<td style="font-size:0.74rem" title="'+(d.responsable_email||'')+'">'+(d.responsable||'—')+'</td>' +
         '<td style="font-size:0.78rem"><span style="font-weight:600;color:var(--green-dark)">'+(d.gestor_nombre||d.gestor_email||'—')+'</span></td>' +
+        '<td><button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem" onclick="verCasoDireccion('+d.id+')" title="Ver caso (solo lectura)">🔍</button></td>' +
         '</tr>';
     }).join('') +
     '</tbody></table></div></div>';
   cont.innerHTML = html;
+}
+
+function exportarExcelDireccion() {
+  var filtro = getSedeFiltroDireccion();
+  var casos = data.filter(function(d) {
+    return filtro.modo === 'todas' ? true : filtro.sedes.indexOf(d.sede) !== -1;
+  });
+  var headers = ['ID','Fecha','Sede','Servicio','Tipo','Apellido','Nombre','DNI','Criticidad','Estado','Responsable','Motivo','Vencimiento','Fecha de Cierre'];
+  var rows = casos.map(function(d) {
+    return [d.id, d.fecha||'', d.sede||'', d.servicio||'', d.tipo||'', d.apellido||'', d.nombre||'', d.dni||'', d.criticidad||'', d.estado||'', d.responsable||'', d.motivo||'', d.vencimiento||'', d.fecha_cierre||''];
+  });
+  var BOM = '\uFEFF';
+  var csv = BOM + 'sep=;\r\n' + [headers].concat(rows).map(function(r) {
+    return r.map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';');
+  }).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var fecha = new Date().toISOString().split('T')[0];
+  a.href = url; a.download = 'CEMIC_Casos_Direccion_'+fecha+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function verCasoDireccion(id) {
+  var d = data.find(function(x){ return x.id === id; });
+  if (!d) return;
+  var ck = (d.criticidad||'').replace('é','e').replace('í','i');
+  var gestionesHtml = (d.gestiones && d.gestiones.length > 0) ? d.gestiones.map(function(g, gi) {
+    return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:0.82rem;margin-bottom:8px">' +
+      '<div style="font-weight:600;color:var(--green-dark);margin-bottom:6px">'+(d.gestiones.length>1?'Gestión '+(gi+1)+': ':'')+(g.sede||'')+(g.sector?' · '+g.sector:'')+(g.motivo?' · '+g.motivo:'')+'</div>' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;color:var(--text-muted)">' +
+        (g.criticidad?'<span>Criticidad: <strong>'+g.criticidad+'</strong></span>':'') +
+        (g.responsable?'<span>Responsable: <strong>'+g.responsable+'</strong></span>':'') +
+        (g.vencimiento?'<span>Vence: <strong>'+g.vencimiento+'</strong></span>':'') +
+      '</div>' +
+      (g.respuesta?'<div style="margin-top:6px"><span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted)">Respuesta:</span> <span style="color:#166534">'+g.respuesta+'</span></div>':'') +
+      (g.accion?'<div style="margin-top:4px"><span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted)">Acción de mejora:</span> <span style="color:#78350f">'+g.accion+'</span></div>':'') +
+    '</div>';
+  }).join('') : '<div style="color:var(--text-muted);font-style:italic">Sin gestiones registradas.</div>';
+
+  document.getElementById('ver-caso-titulo').textContent = '#'+d.id+' — '+(d.tipo||'');
+  document.getElementById('ver-caso-body').innerHTML =
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span class="'+getBadgeClass(d.tipo)+'">'+(d.tipo||'')+'</span>' +
+      '<span class="crit-badge '+ck+'">'+(d.criticidad||'—')+'</span>' +
+      '<span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600">'+(d.estado||'—')+'</span>' +
+      (isVencido(d.vencimiento,d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600">⚠️ Vencido</span>':'') +
+    '</div>' +
+    '<div class="detalle-label">👤 Paciente</div>' +
+    '<div class="detalle-val" style="margin-bottom:12px"><strong>'+(d.apellido||'')+' '+(d.nombre||'')+'</strong>'+(d.dni?' · DNI: '+d.dni:'')+(d.telefono?' · Tel: '+d.telefono:'')+(d.mail_presentante?'<br><span style="color:var(--text-muted);font-size:0.82rem">'+d.mail_presentante+'</span>':'')+'</div>' +
+    '<div class="detalle-label">📍 Sede / Servicio</div>' +
+    '<div class="detalle-val" style="margin-bottom:12px">'+(d.sede||'—')+(d.servicio?' · '+d.servicio:'')+' · '+(d.fecha||'—')+'</div>' +
+    (d.folio ? '<div class="detalle-label">📓 N° de Folio</div><div class="detalle-val" style="margin-bottom:12px">'+d.folio+'</div>' : '') +
+    '<div class="detalle-label">📋 Relato del Hecho</div>' +
+    '<div class="detalle-val detalle-relato" style="margin-bottom:12px">'+(d.relato||'Sin relato registrado.')+'</div>' +
+    '<div class="detalle-label">⚙️ Gestiones</div>' +
+    '<div style="margin-bottom:12px">'+gestionesHtml+'</div>' +
+    (d.obs_admin ? '<div class="detalle-label" style="color:#92400e">📋 Respuesta al Paciente</div><div class="detalle-val detalle-relato" style="background:#fefce8;border-color:#fde68a;margin-bottom:12px">'+d.obs_admin+'</div>' : '') +
+    (d.comentario_dir ? '<div class="detalle-label" style="color:#3b5bdb">💼 Comentario Dirección</div><div class="detalle-val detalle-relato" style="background:#f0f5ff;border-color:#c7d7f5;margin-bottom:12px">'+d.comentario_dir+'</div>' : '');
+  document.getElementById('modal-ver-caso-overlay').classList.add('active');
+}
+
+function closeVerCasoDireccion() {
+  document.getElementById('modal-ver-caso-overlay').classList.remove('active');
 }
 
 function renderDireccionTablero() {
@@ -3626,7 +3762,7 @@ function getFilteredData() {
       && (!fTipo   || d.tipo === fTipo)
       && (!fEstado || d.estado === fEstado)
       && (!fCrit   || d.criticidad === fCrit)
-      && (!fMotivo || d.motivo === fMotivo)
+      && (!fMotivo || d.motivo_reclamo === fMotivo || (d.motivo||'').includes(fMotivo))
       && (!fDesde  || (d.fecha && d.fecha >= fDesde))
       && (!fHasta  || (d.fecha && d.fecha <= fHasta));
   });
@@ -3752,6 +3888,40 @@ function origenBadge(d) {
   return '<span title="Cargado por admin/gestor desde el panel" style="margin-left:5px;font-size:0.62rem;background:#f3f4f6;color:#374151;border-radius:5px;padding:1px 5px;font-weight:700;white-space:nowrap">🧑‍💼 Admin</span>';
 }
 
+// Listas "reales" (derivadas de la estructura de menús actual), usadas por todos los filtros
+function getServiciosUnicos() {
+  var set = {};
+  Object.keys(SEDE_SECTORES_MAP).forEach(function(sede){
+    SEDE_SECTORES_MAP[sede].forEach(function(s){ set[s] = true; });
+  });
+  return Object.keys(set).sort();
+}
+function getMotivosReclamoUnicos() {
+  var set = {};
+  Object.keys(TIPOS_RECLAMO_MAP).forEach(function(tipo){
+    TIPOS_RECLAMO_MAP[tipo].forEach(function(m){ set[m] = true; });
+  });
+  return Object.keys(set).sort();
+}
+// Sincroniza los filtros de Servicio y Motivo (admin + tablero) con la estructura real de menús,
+// en vez de las listas viejas que habían quedado desactualizadas
+function actualizarFiltrosConEstructuraReal() {
+  var servicios = getServiciosUnicos();
+  var motivos = getMotivosReclamoUnicos();
+  var tiposReclamo = TIPOS_RECLAMO_LIST;
+  function rebuild(id, items, placeholder) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var current = el.value;
+    el.innerHTML = '<option value="">'+placeholder+'</option>' +
+      items.map(function(s){ return '<option'+(s===current?' selected':'')+'>'+s+'</option>'; }).join('');
+  }
+  rebuild('filter-servicio', servicios, 'Todos los servicios');
+  rebuild('t-filter-servicio', servicios, 'Todos los servicios');
+  rebuild('filter-motivo', motivos, 'Todos los motivos');
+  rebuild('t-filter-motivo', motivos, 'Todos los motivos');
+}
+
 function getActiveFilters() {
   return ['search-input','filter-sede','filter-servicio','filter-tipo','filter-estado','filter-criticidad','filter-motivo','filter-fecha-desde','filter-fecha-hasta','filter-vencimiento']
     .filter(id => document.getElementById(id) && document.getElementById(id).value.trim() !== '').length;
@@ -3809,7 +3979,7 @@ function renderTabla() {
       && (!fTipo   || d.tipo === fTipo)
       && (!fEstado || d.estado === fEstado)
       && (!fCrit   || d.criticidad === fCrit)
-      && (!fMotivo || d.motivo === fMotivo)
+      && (!fMotivo || d.motivo_reclamo === fMotivo || (d.motivo||'').includes(fMotivo))
       && (!fDesde  || (d.fecha && d.fecha >= fDesde))
       && (!fHasta  || (d.fecha && d.fecha <= fHasta));
   }).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id);
