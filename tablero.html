@@ -2336,7 +2336,7 @@ function buildSATableroKPIs() {
   var total = data.length;
   var cerrados = data.filter(function(d){ return d.estado==='Cerrado'; }).length;
   var criticos = data.filter(function(d){ return d.criticidad==='Crítica' && d.estado!=='Cerrado'; }).length;
-  var vencidos = data.filter(function(d){ return isVencido(d.vencimiento, d.estado); }).length;
+  var vencidos = data.filter(function(d){ return isVencido(getVencimientoEfectivo(d),d.estado); }).length;
   var noProcedente = data.filter(function(d){ return d.criticidad==='No procedente'; }).length;
   var conCierre = data.filter(function(d){ return d.estado==='Cerrado' && d.fecha_cierre && d.fecha; });
   var promDias = conCierre.length > 0
@@ -2535,7 +2535,7 @@ function renderSACasos() {
         '<td style="padding:7px 8px;font-size:0.74rem"><strong>'+(d.sede||'—')+'</strong><br><span style="color:var(--text-muted);font-size:0.68rem">'+(d.servicio||'')+'</span></td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.tipo||'—')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.74rem">'+(d.apellido||'')+' '+(d.nombre||'')+'</td>' +
-        '<td style="padding:7px 8px;white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:2px 7px;font-size:0.72rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(d.vencimiento,d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.7rem;margin-left:3px;font-weight:600">⚠️ Vencido</span>':isProximoVencer(d.vencimiento,d.estado)?'<span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.7rem;margin-left:3px;font-weight:600">⏰ Próximo a vencer</span>':'')+'</td>' +
+        '<td style="padding:7px 8px;white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:2px 7px;font-size:0.72rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(getVencimientoEfectivo(d),d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.7rem;margin-left:3px;font-weight:600">⚠️ Vencido</span>':isProximoVencer(getVencimientoEfectivo(d),d.estado)?'<span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.7rem;margin-left:3px;font-weight:600">⏰ Próximo a vencer</span>':'')+'</td>' +
         '<td style="padding:7px 8px;font-size:0.78rem">' +
           '<span style="font-weight:600;color:var(--green-dark)">' + (d.gestor_nombre||d.gestor_email||'—') + '</span>' +
         '</td>' +
@@ -2543,7 +2543,7 @@ function renderSACasos() {
           '<button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem" onclick="editCase('+d.id+')" title="Editar">✏️</button>' +
           (d.estado === 'Cerrado' ? '<button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem;margin-left:3px" onclick="archivarCasoAdmin('+d.id+')" title="Archivar">🗃️</button>' : '') +
 
-          (currentUser.rol === 'superadmin' ? '<button class="btn btn-danger" style="padding:3px 8px;font-size:0.7rem;margin-left:3px" onclick="deleteCase('+d.id+')" title="Eliminar">🗑</button>' : '') +
+          '' +
         '</td></tr>';
     };
     var thSA = '<th style="padding:8px;text-align:left">ID</th><th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Sede/Servicio</th><th style="padding:8px;text-align:left">Tipo</th><th style="padding:8px;text-align:left">Paciente</th><th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Responsable</th><th style="padding:8px;text-align:left">Gestor</th><th></th></tr></thead><tbody>';
@@ -2858,7 +2858,7 @@ function renderCoordinadorTablero() {
   var total = casosSede.length;
   var cerrados = casosSede.filter(function(d){ return d.estado === 'Cerrado'; }).length;
   var criticos = casosSede.filter(function(d){ return (d.criticidad==='Crítica'||d.criticidad==='Evento Crítico'||d.tipo==='Caso Crítico') && d.estado!=='Cerrado'; }).length;
-  var vencidos = casosSede.filter(function(d){ return isVencido(d.vencimiento, d.estado); }).length;
+  var vencidos = casosSede.filter(function(d){ return isVencido(getVencimientoEfectivo(d),d.estado); }).length;
   var noProcedente = casosSede.filter(function(d){ return d.criticidad==='No procedente'; }).length;
   var conCierre = casosSede.filter(function(d){ return d.estado==='Cerrado' && d.fecha_cierre && d.fecha; });
   var promDias = conCierre.length > 0
@@ -2898,7 +2898,7 @@ function renderResponsableTablero() {
   var pendientes = myCases.filter(function(d){ return d.estado === 'Pendiente'; }).length;
   var derivados = myCases.filter(function(d){ return d.estado === 'Derivado a Responsable'; }).length;
   var respondidos = myCases.filter(function(d){ return d.estado === 'Respuesta del Responsable'; }).length;
-  var vencidos = myCases.filter(function(d){ return isVencido(d.vencimiento, d.estado); }).length;
+  var vencidos = myCases.filter(function(d){ return isVencido(getVencimientoEfectivo(d),d.estado); }).length;
   function kpiCard(icon, label, value, color) {
     return '<div style="background:white;border-radius:10px;padding:16px;border-top:3px solid '+color+'">' +
       '<div style="font-size:1.8rem;font-weight:700;color:'+color+'">'+value+'</div>' +
@@ -2963,8 +2963,9 @@ function renderDireccionCasos() {
     if (!enMiAlcance) return false;
     var ms = !fBuscar || [d.apellido,d.nombre,d.servicio,d.motivo,d.responsable,d.sede,d.relato,String(d.id)].some(function(v){ return (v||'').toLowerCase().includes(fBuscar); });
     var vencOk = true;
-    if (fVenc && d.vencimiento && d.estado !== 'Cerrado') {
-      var vDate = new Date(d.vencimiento + 'T00:00:00');
+    var vEfectivo = getVencimientoEfectivo(d);
+    if (fVenc && vEfectivo && d.estado !== 'Cerrado') {
+      var vDate = new Date(vEfectivo + 'T00:00:00');
       if (fVenc === 'vencido') vencOk = vDate < hoy;
       if (fVenc === '48hs') vencOk = vDate >= hoy && vDate <= en48;
       if (fVenc === 'novencido') vencOk = vDate >= hoy;
@@ -3068,7 +3069,7 @@ function renderDireccionCasos() {
         '<td><span class="'+getBadgeClass(d.tipo)+'" style="font-size:0.65rem;padding:2px 5px">'+(d.tipo||'').replace('Queja / Reclamo','Queja').replace('Felicitación','Felicit.')+'</span></td>' +
         '<td style="font-size:0.76rem">'+(d.apellido||'')+'<br><span style="color:var(--text-muted);font-size:0.7rem">'+(d.nombre||'')+'</span></td>' +
         '<td><span class="crit-badge '+ck+'" style="font-size:0.68rem">'+(d.criticidad||'—')+'</span></td>' +
-        '<td style="white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(d.vencimiento,d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':isProximoVencer(d.vencimiento,d.estado)?'<br><span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⏰ Próximo a vencer</span>':'')+'</td>' +
+        '<td style="white-space:nowrap"><span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">'+(d.estado||'—')+'</span>'+(isVencido(getVencimientoEfectivo(d),d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':isProximoVencer(getVencimientoEfectivo(d),d.estado)?'<br><span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⏰ Próximo a vencer</span>':'')+'</td>' +
         '<td style="font-size:0.74rem" title="'+(d.responsable_email||'')+'">'+(d.responsable||'—')+'</td>' +
         '<td style="font-size:0.78rem"><span style="font-weight:600;color:var(--green-dark)">'+(d.gestor_nombre||d.gestor_email||'—')+'</span></td>' +
         '<td><button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem" onclick="verCasoDireccion('+d.id+')" title="Ver caso (solo lectura)">🔍</button></td>' +
@@ -3123,7 +3124,7 @@ function verCasoDireccion(id) {
       '<span class="'+getBadgeClass(d.tipo)+'">'+(d.tipo||'')+'</span>' +
       '<span class="crit-badge '+ck+'">'+(d.criticidad||'—')+'</span>' +
       '<span style="background:'+getBgStatus(d.estado)+';color:'+getColorStatus(d.estado)+';border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600">'+(d.estado||'—')+'</span>' +
-      (isVencido(d.vencimiento,d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600">⚠️ Vencido</span>':'') +
+      (isVencido(getVencimientoEfectivo(d),d.estado)?'<span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:3px 9px;font-size:0.78rem;font-weight:600">⚠️ Vencido</span>':'') +
     '</div>' +
     '<div class="detalle-label">👤 Paciente</div>' +
     '<div class="detalle-val" style="margin-bottom:12px"><strong>'+(d.apellido||'')+' '+(d.nombre||'')+'</strong>'+(d.dni?' · DNI: '+d.dni:'')+(d.telefono?' · Tel: '+d.telefono:'')+(d.mail_presentante?'<br><span style="color:var(--text-muted);font-size:0.82rem">'+d.mail_presentante+'</span>':'')+'</div>' +
@@ -3402,7 +3403,7 @@ function renderUserView() {
       <div class="case-card-header">
         <span class="case-card-id">#${d.id}</span>
         <span class="${getBadgeClass(d.tipo)}">${d.tipo}</span>
-        <span class="status-badge" style="background:${getBgStatus(d.estado)};color:${getColorStatus(d.estado)}">${d.estado}</span>${isVencido(d.vencimiento,d.estado)?'<span class="status-badge" style="background:#fee2e2;color:#991b1b;margin-left:4px">⚠️ Vencido</span>':''}
+        <span class="status-badge" style="background:${getBgStatus(d.estado)};color:${getColorStatus(d.estado)}">${d.estado}</span>${isVencido(getVencimientoEfectivo(d),d.estado)?'<span class="status-badge" style="background:#fee2e2;color:#991b1b;margin-left:4px">⚠️ Vencido</span>':''}
         <span class="crit-badge ${(d.criticidad||'').replace('é','e').replace('í','i')}">${d.criticidad||'—'}</span>
         <span class="case-card-meta">${(miGestion&&miGestion.sector)||d.servicio||'—'} · ${(miGestion&&miGestion.sede)||d.sede||'—'} · ${d.fecha||'—'}${v?' ⚠️ Vencido':''}</span>
       </div>
@@ -3698,7 +3699,7 @@ function getFilteredBySubTab(arr) {
 
 function getEstadoEfectivo(d) {
   if (d.estado === 'Cerrado') return 'Cerrado';
-  if (d.vencimiento && isVencido(d.vencimiento, d.estado)) return 'Vencido';
+  if (d.vencimiento && isVencido(getVencimientoEfectivo(d),d.estado)) return 'Vencido';
   return d.estado || 'Pendiente';
 }
 
@@ -3745,8 +3746,9 @@ function getFilteredData() {
   return data.filter(d => {
     const ms = !search || [d.apellido,d.nombre,d.servicio,d.motivo,d.responsable,d.sede,d.relato,String(d.id)].some(v=>(v||'').toLowerCase().includes(search));
     let vencOk = true;
-    if (fVenc && d.vencimiento && d.estado !== 'Cerrado') {
-      const vDate = new Date(d.vencimiento + 'T00:00:00');
+    const vEfectivo = getVencimientoEfectivo(d);
+    if (fVenc && vEfectivo && d.estado !== 'Cerrado') {
+      const vDate = new Date(vEfectivo + 'T00:00:00');
       if (fVenc === 'vencido') vencOk = vDate < hoy;
       if (fVenc === '48hs') vencOk = vDate >= hoy && vDate <= en48;
     } else if (fVenc) { vencOk = false; }
@@ -3856,6 +3858,21 @@ function getBadgeClass(tipo) {
   const m={'Queja / Reclamo':'quejareclamo','Sugerencia':'sugerencia','Felicitación':'felicitacion','Denuncia':'denuncia','Caso Crítico':'casocritico'};
   return 'badge badge-'+(m[tipo]||'quejareclamo');
 }
+// El campo d.vencimiento (raíz) es legacy y puede quedar desactualizado si se corrige
+// la fecha límite dentro de una gestión. Esta función siempre calcula el vencimiento
+// "real" tomando la fecha más próxima entre las gestiones que todavía no tienen respuesta.
+function getVencimientoEfectivo(d) {
+  if (d.gestiones && d.gestiones.length > 0) {
+    var pendientes = d.gestiones.filter(function(g){ return g.vencimiento && !(g.respuesta && g.respuesta.trim()); });
+    var candidatos = pendientes.length > 0 ? pendientes : d.gestiones.filter(function(g){ return g.vencimiento; });
+    if (candidatos.length > 0) {
+      candidatos = candidatos.slice().sort(function(a,b){ return (a.vencimiento||'').localeCompare(b.vencimiento||''); });
+      return candidatos[0].vencimiento;
+    }
+  }
+  return d.vencimiento || '';
+}
+
 function isVencido(fecha, estado) {
   if (!fecha || estado === 'Cerrado') return false;
   var hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -3965,8 +3982,9 @@ function renderTabla() {
   const filtered = data.filter(d => {
     const ms = !search || [d.apellido,d.nombre,d.servicio,d.motivo,d.responsable,d.sede,d.relato,String(d.id)].some(v => (v||'').toLowerCase().includes(search));
     let vencOk = true;
-    if (fVenc && d.vencimiento && d.estado !== 'Cerrado') {
-      const vDate = new Date(d.vencimiento + 'T00:00:00');
+    const vEfectivo = getVencimientoEfectivo(d);
+    if (fVenc && vEfectivo && d.estado !== 'Cerrado') {
+      const vDate = new Date(vEfectivo + 'T00:00:00');
       if (fVenc === 'vencido') vencOk = vDate < hoy;
       if (fVenc === '48hs') vencOk = vDate >= hoy && vDate <= en48;
     } else if (fVenc) {
@@ -4045,7 +4063,7 @@ function renderTabla() {
   if (countGestion) countGestion.textContent = casosGestion.length;
 
   const makeRow = d => {
-    const v = isVencido(d.vencimiento, d.estado);
+    const v = isVencido(getVencimientoEfectivo(d),d.estado);
     var _crit = d.criticidad || (d.gestiones && d.gestiones[0] && d.gestiones[0].criticidad) || '';
     const ck = _crit.replace('é','e').replace('í','i');
     const relatoEsc = (d.relato||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;');
@@ -4059,12 +4077,11 @@ function renderTabla() {
       <td style="font-size:0.76rem">${d.apellido||''}<br><span style="color:var(--text-muted);font-size:0.7rem">${d.nombre||''}</span></td>
       <td><span class="crit-badge ${ck}" style="font-size:0.68rem">${_crit||'—'}</span></td>
       <td style="font-size:0.74rem" title="${d.responsable_email||''}">${d.responsable||'—'}</td>
-      <td style="white-space:nowrap"><span style="background:${getBgStatus(d.estado)};color:${getColorStatus(d.estado)};border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">${d.estado||'—'}</span>${isVencido(d.vencimiento,d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':isProximoVencer(d.vencimiento,d.estado)?'<br><span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⏰ Próximo a vencer</span>':''}${d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?`<br><span style="font-size:0.68rem;color:#065f46;font-weight:600">🗓 ${d.fecha_cierre}</span>`:''}</td>
+      <td style="white-space:nowrap"><span style="background:${getBgStatus(d.estado)};color:${getColorStatus(d.estado)};border-radius:6px;padding:3px 7px;font-size:0.7rem;font-weight:600">${d.estado||'—'}</span>${isVencido(getVencimientoEfectivo(d),d.estado)?'<br><span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⚠️ Vencido</span>':isProximoVencer(getVencimientoEfectivo(d),d.estado)?'<br><span style="background:#ffedd5;color:#c2410c;border-radius:6px;padding:2px 6px;font-size:0.68rem;font-weight:600;margin-top:2px;display:inline-block">⏰ Próximo a vencer</span>':''}${d.estado==='Cerrado'&&d.fecha_cierre&&d.fecha_cierre!=='[sin fecha]'?`<br><span style="font-size:0.68rem;color:#065f46;font-weight:600">🗓 ${d.fecha_cierre}</span>`:''}</td>
       <td style="white-space:nowrap" onclick="event.stopPropagation()">
         ${currentUser.rol !== 'readonly' && currentUser.rol !== 'direccion' ? `
         <button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem" onclick="editCase(${d.id})">✏️</button>
         ${(d.estado||'').trim() === 'Cerrado' ? `<button class="btn btn-outline" style="padding:3px 8px;font-size:0.7rem;margin-left:3px" onclick="archivarCasoAdmin(${d.id})">🗃️</button>` : ''}
-        ${currentUser.rol === 'superadmin' ? `<button class="btn btn-danger" style="padding:3px 8px;font-size:0.7rem;margin-left:3px" onclick="deleteCase(${d.id})">🗑</button>` : ''}
         ` : '—'}
       </td>
     </tr>
