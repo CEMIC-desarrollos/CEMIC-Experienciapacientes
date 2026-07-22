@@ -2784,32 +2784,26 @@ function syncMenusToForm() {
 
   function rebuildSelect(id, items, keepFirst) {
     var el = document.getElementById(id);
-    if (!el) return;
+    if (!el || !items) return;
     var firstOpt = keepFirst && el.options.length > 0 ? el.options[0].cloneNode(true) : null;
     el.innerHTML = '';
     if (firstOpt) el.appendChild(firstOpt);
     items.forEach(function(s) { var o=document.createElement('option'); o.text=s; o.value=s; el.appendChild(o); });
   }
 
-  // Sedes
-  ['filter-sede','t-filter-sede','f-sede'].forEach(function(id){ rebuildSelect(id, menus.sedes, true); });
-  // Servicios
-  ['filter-servicio','t-filter-servicio','f-servicio'].forEach(function(id){ rebuildSelect(id, menus.servicios, true); });
+  // Nota: Sedes, Servicios y Motivos ya NO se sincronizan acá — quedaron obsoletos
+  // desde que se armó la estructura real de menús (SEDE_SECTORES_MAP, TIPOS_RECLAMO_MAP).
+  // Esos filtros ahora se arman en actualizarFiltrosConEstructuraReal().
   // Tipos (filtros)
   ['filter-tipo','t-filter-tipo'].forEach(function(id){ rebuildSelect(id, menus.tipos, true); });
   // f-tipo (modal) sin placeholder
   var fTipo = document.getElementById('f-tipo');
-  if (fTipo) { fTipo.innerHTML=''; menus.tipos.forEach(function(s){ var o=document.createElement('option'); o.text=s; fTipo.appendChild(o); }); }
-  // Motivos (filtros)
-  ['filter-motivo','t-filter-motivo'].forEach(function(id){ rebuildSelect(id, menus.motivos, true); });
-  // f-motivo
-  var fMotivo = document.getElementById('f-motivo');
-  if (fMotivo) { rebuildSelect('f-motivo', menus.motivos, true); }
+  if (fTipo && menus.tipos) { fTipo.innerHTML=''; menus.tipos.forEach(function(s){ var o=document.createElement('option'); o.text=s; fTipo.appendChild(o); }); }
   // Criticidad (filtros)
   ['filter-criticidad','t-filter-criticidad'].forEach(function(id){ rebuildSelect(id, menus.criticidades, true); });
   // f-criticidad
   var fCrit = document.getElementById('f-criticidad');
-  if (fCrit) { fCrit.innerHTML=''; menus.criticidades.forEach(function(s){ var o=document.createElement('option'); o.text=s; fCrit.appendChild(o); }); }
+  if (fCrit && menus.criticidades) { fCrit.innerHTML=''; menus.criticidades.forEach(function(s){ var o=document.createElement('option'); o.text=s; fCrit.appendChild(o); }); }
 }
 
 // Login dinámico para usuarios creados por superadmin
@@ -3862,7 +3856,12 @@ function getBadgeClass(tipo) {
   const m={'Queja / Reclamo':'quejareclamo','Sugerencia':'sugerencia','Felicitación':'felicitacion','Denuncia':'denuncia','Caso Crítico':'casocritico'};
   return 'badge badge-'+(m[tipo]||'quejareclamo');
 }
-function isVencido(fecha,estado) { return !(!fecha||estado==='Cerrado') && new Date(fecha)<new Date(); }
+function isVencido(fecha, estado) {
+  if (!fecha || estado === 'Cerrado') return false;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var vDate = new Date(fecha + 'T00:00:00');
+  return vDate < hoy;
+}
 function isProximoVencer(fecha, estado) {
   if (!fecha || estado === 'Cerrado') return false;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
