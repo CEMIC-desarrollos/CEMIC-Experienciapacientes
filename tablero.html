@@ -1479,8 +1479,8 @@ function startRealtimeListener() {
       data.push(d);
     });
     if (currentUser) {
-      if (currentUser.rol === 'admin' || currentUser.rol === 'readonly') { refresh(); updateTimestamp(); }
-      else if (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full') { renderSACasos(); updateTimestamp(); }
+      if (currentUser.rol === 'readonly') { refresh(); updateTimestamp(); }
+      else if (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full' || currentUser.rol === 'admin') { renderSACasos(); updateTimestamp(); }
       else if (currentUser.rol === 'direccion') { renderDireccionView(); }
       else { renderUserView(); }
     }
@@ -2140,7 +2140,7 @@ function showApp() {
   const initials = currentUser.nombre.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
 
-  if (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full') {
+  if (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full' || currentUser.rol === 'admin') {
     document.querySelector('main').style.display = 'none';
     document.getElementById('user-view').classList.remove('active');
     var saView = document.getElementById('superadmin-view');
@@ -2173,7 +2173,7 @@ function showApp() {
     if (btnNuevoCasoCoord) btnNuevoCasoCoord.style.display = 'inline-flex';
     switchDirTab('gestion');
     loadData(function() { renderUserView(); updateTimestamp(); startRealtimeListener(); });
-  } else if (currentUser.rol === 'admin' || currentUser.rol === 'readonly') {
+  } else if (currentUser.rol === 'readonly') {
     document.querySelector('main').style.display = 'block';
     var uvEl = document.getElementById('user-view');
     uvEl.classList.remove('active');
@@ -2187,7 +2187,7 @@ function showApp() {
       if (el) el.style.display = 'none';
       document.getElementById('header-title').innerHTML = 'Tablero de <span>Gestión de Felicitaciones, Sugerencias y Reclamos</span>';
     }
-    // admin, admin_full y readonly arrancan en tab Tablero
+    // readonly arranca en tab Tablero
     (function() {
       var bar = document.getElementById('tabs-bar');
       var btnT = document.getElementById('tab-btn-tablero');
@@ -2289,7 +2289,7 @@ function startUsuariosRealtimeListener() {
       customUsersCache.push(Object.assign({ email: doc.id }, d));
     });
     // Si la pantalla de Usuarios está abierta, refrescarla
-    if (currentUser && (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full')) {
+    if (currentUser && (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full' || currentUser.rol === 'admin')) {
       var saTabUsuarios = document.getElementById('sa-tab-usuarios');
       if (saTabUsuarios && saTabUsuarios.style.display !== 'none') renderUsuarios();
     }
@@ -4478,9 +4478,8 @@ function updateBtnEnviarRespuesta() {
   var btn = document.getElementById('btn-enviar-respuesta');
   if (!btn) return;
   var rol = currentUser ? currentUser.rol : '';
-  // Solo superadmin y admin_full pueden enviar respuesta al presentante
-  // admin (gestor) y responsable no tienen este botón
-  if (rol === 'admin' || rol === 'responsable' || rol === 'usuario') {
+  // Gestor ahora tiene las mismas funcionalidades que Administrador; solo responsable no tiene este botón
+  if (rol === 'responsable' || rol === 'usuario') {
     btn.style.display = 'none';
     return;
   }
@@ -4583,9 +4582,9 @@ function checkObsAdmin() {
   var esNoProcedente = critActual === 'No procedente';
   var esFelicitacion = tipoActualObs === 'Felicitación' || tipoActualObs === 'Sugerencia';
   if (esNoProcedente || esFelicitacion) todasRespondidas = true;
-  // Además: rol admin no puede escribir aquí (excepto No procedente y Felicitación)
+  // Gestor ahora tiene las mismas funcionalidades que Administrador; solo responsable no puede escribir aquí
   var rolActual = currentUser ? currentUser.rol : '';
-  var soloLectura = (rolActual === 'admin' || rolActual === 'responsable' || rolActual === 'usuario') && !esNoProcedente && !esFelicitacion;
+  var soloLectura = (rolActual === 'responsable' || rolActual === 'usuario') && !esNoProcedente && !esFelicitacion;
   if (!todasRespondidas || soloLectura) {
     obsAdmin.readOnly = true;
     obsAdmin.disabled = !todasRespondidas;
@@ -5239,11 +5238,11 @@ function openModal(id) {
   document.getElementById('f-accion').value     = v('accion');
   document.getElementById('f-obs-admin').value  = v('obs_admin');
   document.getElementById('f-resumen-gestiones').value = v('resumen_gestiones');
-  // Admin/gestor no puede escribir en Respuesta al Paciente (solo superadmin/admin_full)
+  // Gestor ahora tiene las mismas funcionalidades que Administrador; solo responsable es de solo lectura acá
   var obsEl = document.getElementById('f-obs-admin');
   var rolActual = currentUser ? currentUser.rol : '';
   if (obsEl) {
-    var soloLecturaObs = (rolActual === 'admin' || rolActual === 'responsable' || rolActual === 'usuario');
+    var soloLecturaObs = (rolActual === 'responsable' || rolActual === 'usuario');
     obsEl.readOnly = soloLecturaObs;
     obsEl.style.background = soloLecturaObs ? '#f9fafb' : '#fefce8';
     obsEl.style.borderColor = soloLecturaObs ? 'var(--border)' : '#fde68a';
