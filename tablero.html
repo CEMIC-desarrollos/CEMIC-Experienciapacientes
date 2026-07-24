@@ -1481,8 +1481,8 @@ function startRealtimeListener() {
     if (currentUser) {
       if (currentUser.rol === 'readonly') { refresh(); updateTimestamp(); }
       else if (currentUser.rol === 'superadmin' || currentUser.rol === 'admin_full' || currentUser.rol === 'admin') { renderSACasos(); updateTimestamp(); }
-      else if (currentUser.rol === 'direccion') { renderDireccionView(); }
-      else { renderUserView(); }
+      else if (currentUser.rol === 'direccion') { renderDireccionViewPreservandoBorradores(); }
+      else { renderUserViewPreservandoBorradores(); }
     }
   });
 }
@@ -2312,7 +2312,7 @@ function limpiarFiltrosSACasos() {
   ['sa-casos-buscar','sa-casos-sede','sa-casos-tipo','sa-casos-estado','sa-casos-gestor','sa-casos-criticidad','sa-casos-vencimiento','sa-casos-tipo-reclamo','sa-casos-motivo','sa-casos-servicio','sa-casos-fecha-desde','sa-casos-fecha-hasta'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  renderSACasos();
+  renderSACasosTabla();
 }
 
 
@@ -2436,6 +2436,87 @@ function switchSATab(tab) {
 function renderSACasos() {
   var cont = document.getElementById('sa-tab-casos');
   if (!cont) return;
+  cont.innerHTML = '<div id="sa-casos-filtros-wrap"></div><div id="sa-casos-resultados-wrap"></div>';
+  renderSACasosFiltros();
+  renderSACasosTabla();
+}
+
+function renderSACasosFiltros() {
+  var wrap = document.getElementById('sa-casos-filtros-wrap');
+  if (!wrap) return;
+  var fSede   = (document.getElementById('sa-casos-sede')||{}).value||'';
+  var fTipo   = (document.getElementById('sa-casos-tipo')||{}).value||'';
+  var fEstado = (document.getElementById('sa-casos-estado')||{}).value||'';
+  var fCrit     = (document.getElementById('sa-casos-criticidad')||{}).value||'';
+  var fVenc     = (document.getElementById('sa-casos-vencimiento')||{}).value||'';
+  var fTipoRec  = (document.getElementById('sa-casos-tipo-reclamo')||{}).value||'';
+  var fMotivo   = (document.getElementById('sa-casos-motivo')||{}).value||'';
+  var fServicio = (document.getElementById('sa-casos-servicio')||{}).value||'';
+  var fDesde    = (document.getElementById('sa-casos-fecha-desde')||{}).value||'';
+  var fHasta    = (document.getElementById('sa-casos-fecha-hasta')||{}).value||'';
+  var servicios = getServiciosUnicos();
+  var motivos = getMotivosReclamoUnicos();
+  var filterBar = '<div class="filter-panel">' +
+    '<div class="filter-panel-header">🔍 Filtrar Casos</div>' +
+    '<div class="filter-grid">' +
+    '<div class="filter-group filter-span2"><label>Buscar</label>' +
+    '<input type="text" id="sa-casos-buscar" placeholder="Nombre, sede, tipo..." oninput="renderSACasosTabla()"></div>' +
+    '<div class="filter-group"><label>Sede</label>' +
+    '<select id="sa-casos-sede" onchange="renderSACasosTabla()">' +
+    '<option value="">Todas</option>' +
+    ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'].map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Tipo</label>' +
+    '<select id="sa-casos-tipo" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos</option>' +
+    ['Queja / Reclamo','Sugerencia','Felicitación'].map(function(s){ return '<option'+(fTipo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Estado</label>' +
+    '<select id="sa-casos-estado" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos</option>' +
+    ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Gestor</label>' +
+    '<input type="text" id="sa-casos-gestor" placeholder="Nombre gestor..." oninput="renderSACasosTabla()"></div>' +
+    '<div class="filter-group"><label>Criticidad</label>' +
+    '<select id="sa-casos-criticidad" onchange="renderSACasosTabla()">' +
+    '<option value="">Toda criticidad</option>' +
+    CRITICIDADES_GESTION.map(function(s){ return '<option'+(fCrit===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Vencimiento</label>' +
+    '<select id="sa-casos-vencimiento" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos</option>' +
+    '<option value="vencido"'+(fVenc==='vencido'?' selected':'')+'>⛔ Vencidos</option>' +
+    '<option value="48hs"'+(fVenc==='48hs'?' selected':'')+'>⚠️ Próximos a vencer (48hs)</option>' +
+    '<option value="novencido"'+(fVenc==='novencido'?' selected':'')+'>✅ No vencidos</option>' +
+    '</select></div>' +
+    '<div class="filter-group"><label>Tipo de Reclamo</label>' +
+    '<select id="sa-casos-tipo-reclamo" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos</option>' +
+    TIPOS_RECLAMO_LIST.map(function(s){ return '<option'+(fTipoRec===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Motivo</label>' +
+    '<select id="sa-casos-motivo" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos los motivos</option>' +
+    motivos.map(function(s){ return '<option'+(fMotivo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Servicio</label>' +
+    '<select id="sa-casos-servicio" onchange="renderSACasosTabla()">' +
+    '<option value="">Todos los servicios</option>' +
+    servicios.map(function(s){ return '<option'+(fServicio===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="filter-group"><label>Fecha desde</label>' +
+    '<input type="date" id="sa-casos-fecha-desde" value="'+fDesde+'" onchange="renderSACasosTabla()"></div>' +
+    '<div class="filter-group"><label>Fecha hasta</label>' +
+    '<input type="date" id="sa-casos-fecha-hasta" value="'+fHasta+'" onchange="renderSACasosTabla()"></div>' +
+    '<div class="filter-group" style="justify-content:flex-end"><label>&nbsp;</label><button onclick="limpiarFiltrosSACasos()" class="btn btn-ghost" style="width:100%">✕ Limpiar</button></div>' +
+    '</div></div>';
+  wrap.innerHTML = filterBar;
+}
+
+function renderSACasosTabla() {
+  var wrap = document.getElementById('sa-casos-resultados-wrap');
+  if (!wrap) return;
 
   // Leer filtros
   var fBuscar = ((document.getElementById('sa-casos-buscar')||{}).value||'').toLowerCase();
@@ -2519,65 +2600,7 @@ function renderSACasos() {
     return (b.fecha||'').localeCompare(a.fecha||'')||b.id-a.id;
   });;
 
-  // Build filter bar HTML — mismo estilo/campos que la pestaña Casos de Dirección
-  var servicios = getServiciosUnicos();
-  var motivos = getMotivosReclamoUnicos();
-  var filterBar = '<div class="filter-panel">' +
-    '<div class="filter-panel-header">🔍 Filtrar Casos</div>' +
-    '<div class="filter-grid">' +
-    '<div class="filter-group filter-span2"><label>Buscar</label>' +
-    '<input type="text" id="sa-casos-buscar" value="'+fBuscar+'" placeholder="Nombre, sede, tipo..." oninput="renderSACasos()"></div>' +
-    '<div class="filter-group"><label>Sede</label>' +
-    '<select id="sa-casos-sede" onchange="renderSACasos()">' +
-    '<option value="">Todas</option>' +
-    ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'].map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Tipo</label>' +
-    '<select id="sa-casos-tipo" onchange="renderSACasos()">' +
-    '<option value="">Todos</option>' +
-    ['Queja / Reclamo','Sugerencia','Felicitación'].map(function(s){ return '<option'+(fTipo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Estado</label>' +
-    '<select id="sa-casos-estado" onchange="renderSACasos()">' +
-    '<option value="">Todos</option>' +
-    ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Gestor</label>' +
-    '<input type="text" id="sa-casos-gestor" value="'+fGestor+'" placeholder="Nombre gestor..." oninput="renderSACasos()"></div>' +
-    '<div class="filter-group"><label>Criticidad</label>' +
-    '<select id="sa-casos-criticidad" onchange="renderSACasos()">' +
-    '<option value="">Toda criticidad</option>' +
-    CRITICIDADES_GESTION.map(function(s){ return '<option'+(fCrit===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Vencimiento</label>' +
-    '<select id="sa-casos-vencimiento" onchange="renderSACasos()">' +
-    '<option value="">Todos</option>' +
-    '<option value="vencido"'+(fVenc==='vencido'?' selected':'')+'>⛔ Vencidos</option>' +
-    '<option value="48hs"'+(fVenc==='48hs'?' selected':'')+'>⚠️ Próximos a vencer (48hs)</option>' +
-    '<option value="novencido"'+(fVenc==='novencido'?' selected':'')+'>✅ No vencidos</option>' +
-    '</select></div>' +
-    '<div class="filter-group"><label>Tipo de Reclamo</label>' +
-    '<select id="sa-casos-tipo-reclamo" onchange="renderSACasos()">' +
-    '<option value="">Todos</option>' +
-    TIPOS_RECLAMO_LIST.map(function(s){ return '<option'+(fTipoRec===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Motivo</label>' +
-    '<select id="sa-casos-motivo" onchange="renderSACasos()">' +
-    '<option value="">Todos los motivos</option>' +
-    motivos.map(function(s){ return '<option'+(fMotivo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Servicio</label>' +
-    '<select id="sa-casos-servicio" onchange="renderSACasos()">' +
-    '<option value="">Todos los servicios</option>' +
-    servicios.map(function(s){ return '<option'+(fServicio===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="filter-group"><label>Fecha desde</label>' +
-    '<input type="date" id="sa-casos-fecha-desde" value="'+fDesde+'" onchange="renderSACasos()"></div>' +
-    '<div class="filter-group"><label>Fecha hasta</label>' +
-    '<input type="date" id="sa-casos-fecha-hasta" value="'+fHasta+'" onchange="renderSACasos()"></div>' +
-    '<div class="filter-group" style="justify-content:flex-end"><label>&nbsp;</label><button onclick="limpiarFiltrosSACasos()" class="btn btn-ghost" style="width:100%">✕ Limpiar</button></div>' +
-    '</div></div>';
-  cont.innerHTML = filterBar + '<div style="background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">' +
+  wrap.innerHTML = '<div style="background:white;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">' +
     '<span style="font-size:0.88rem;font-weight:600;color:var(--green-mid)">📋 '+sorted.length+' casos</span>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -2993,15 +3016,103 @@ function limpiarFiltrosDireccionCasos() {
   ['dir-casos-buscar','dir-casos-sede','dir-casos-tipo','dir-casos-estado','dir-casos-criticidad','dir-casos-vencimiento','dir-casos-tipo-reclamo','dir-casos-motivo','dir-casos-servicio','dir-casos-fecha-desde','dir-casos-fecha-hasta'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  renderDireccionCasos();
+  renderDireccionCasosTabla();
 }
 
 function renderDireccionCasos() {
   var cont = document.getElementById('dir-tab-content-casos');
   if (!cont) return;
+  cont.innerHTML = '<div id="dir-casos-filtros-wrap"></div><div id="dir-casos-resultados-wrap"></div>';
+  renderDireccionCasosFiltros();
+  renderDireccionCasosTabla();
+}
+
+function renderDireccionCasosFiltros() {
+  var wrap = document.getElementById('dir-casos-filtros-wrap');
+  if (!wrap) return;
+  var filtro = getSedeFiltroDireccion();
+  var fSede     = (document.getElementById('dir-casos-sede')||{}).value||'';
+  var fTipo     = (document.getElementById('dir-casos-tipo')||{}).value||'';
+  var fEstado   = (document.getElementById('dir-casos-estado')||{}).value||'';
+  var fCrit     = (document.getElementById('dir-casos-criticidad')||{}).value||'';
+  var fVenc     = (document.getElementById('dir-casos-vencimiento')||{}).value||'';
+  var fTipoRec  = (document.getElementById('dir-casos-tipo-reclamo')||{}).value||'';
+  var fMotivo   = (document.getElementById('dir-casos-motivo')||{}).value||'';
+  var fServicio = (document.getElementById('dir-casos-servicio')||{}).value||'';
+  var fDesde    = (document.getElementById('dir-casos-fecha-desde')||{}).value||'';
+  var fHasta    = (document.getElementById('dir-casos-fecha-hasta')||{}).value||'';
+
+  var sedeSelectHtml;
+  if (filtro.modo === 'todas') {
+    sedeSelectHtml = '<option value="">Todas las sedes</option>' +
+      ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'].map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
+  } else {
+    sedeSelectHtml = '<option value="">Todas mis sedes</option>' +
+      filtro.sedes.map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
+  }
+  var servicios = getServiciosUnicos();
+  var motivos = getMotivosReclamoUnicos();
+
+  var html = '<div class="filter-panel">' +
+    '<div class="filter-panel-header">🔍 Filtrar casos</div>' +
+    '<div class="filter-grid">' +
+      '<div class="filter-group filter-span2"><label>Buscar</label>' +
+        '<input type="text" id="dir-casos-buscar" placeholder="Nombre, sede, tipo..." oninput="renderDireccionCasosTabla()"></div>' +
+      '<div class="filter-group"><label>Sede</label>' +
+        '<select id="dir-casos-sede" onchange="renderDireccionCasosTabla()">'+sedeSelectHtml+'</select></div>' +
+      '<div class="filter-group"><label>Tipo</label>' +
+        '<select id="dir-casos-tipo" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos los tipos</option>' +
+          ['Queja / Reclamo','Sugerencia','Felicitación'].map(function(s){ return '<option'+(fTipo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Estado</label>' +
+        '<select id="dir-casos-estado" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos los estados</option>' +
+          ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Criticidad</label>' +
+        '<select id="dir-casos-criticidad" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Toda criticidad</option>' +
+          CRITICIDADES_GESTION.map(function(s){ return '<option'+(fCrit===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Vencimiento</label>' +
+        '<select id="dir-casos-vencimiento" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos</option>' +
+          '<option value="vencido"'+(fVenc==='vencido'?' selected':'')+'>⛔ Vencidos</option>' +
+          '<option value="48hs"'+(fVenc==='48hs'?' selected':'')+'>⚠️ Próximos a vencer (48hs)</option>' +
+          '<option value="novencido"'+(fVenc==='novencido'?' selected':'')+'>✅ No vencidos</option>' +
+        '</select></div>' +
+      '<div class="filter-group"><label>Tipo de Reclamo</label>' +
+        '<select id="dir-casos-tipo-reclamo" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos</option>' +
+          TIPOS_RECLAMO_LIST.map(function(s){ return '<option'+(fTipoRec===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Motivo</label>' +
+        '<select id="dir-casos-motivo" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos los motivos</option>' +
+          motivos.map(function(s){ return '<option'+(fMotivo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Servicio</label>' +
+        '<select id="dir-casos-servicio" onchange="renderDireccionCasosTabla()">' +
+          '<option value="">Todos los servicios</option>' +
+          servicios.map(function(s){ return '<option'+(fServicio===s?' selected':'')+'>'+s+'</option>'; }).join('') +
+        '</select></div>' +
+      '<div class="filter-group"><label>Fecha desde</label>' +
+        '<input type="date" id="dir-casos-fecha-desde" value="'+fDesde+'" onchange="renderDireccionCasosTabla()"></div>' +
+      '<div class="filter-group"><label>Fecha hasta</label>' +
+        '<input type="date" id="dir-casos-fecha-hasta" value="'+fHasta+'" onchange="renderDireccionCasosTabla()"></div>' +
+      '<div class="filter-group" style="justify-content:flex-end">' +
+        '<button class="btn btn-ghost" onclick="limpiarFiltrosDireccionCasos()" style="width:100%">✕ Limpiar filtros</button></div>' +
+    '</div></div>';
+  wrap.innerHTML = html;
+}
+
+function renderDireccionCasosTabla() {
+  var wrap = document.getElementById('dir-casos-resultados-wrap');
+  if (!wrap) return;
   var filtro = getSedeFiltroDireccion();
 
-  // Leer filtros (si ya existen en el DOM, de un render anterior)
+  // Leer filtros (los inputs viven en dir-casos-filtros-wrap, no se tocan acá)
   var fBuscar   = ((document.getElementById('dir-casos-buscar')||{}).value||'').toLowerCase();
   var fSede     = (document.getElementById('dir-casos-sede')||{}).value||'';
   var fTipo     = (document.getElementById('dir-casos-tipo')||{}).value||'';
@@ -3041,78 +3152,14 @@ function renderDireccionCasos() {
       && (!fHasta    || (d.fecha && d.fecha <= fHasta));
   }).sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||'') || b.id - a.id; });
 
-  // Panel de filtros — igual estética que la pestaña Casos de admin/superadmin
-  var sedeSelectHtml;
-  if (filtro.modo === 'todas') {
-    sedeSelectHtml = '<option value="">Todas las sedes</option>' +
-      ['Saavedra','Pombo','Las Heras','Talcahuano','Ballester','San Isidro','Belgrano','Carabobo'].map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
-  } else {
-    sedeSelectHtml = '<option value="">Todas mis sedes</option>' +
-      filtro.sedes.map(function(s){ return '<option'+(fSede===s?' selected':'')+'>'+s+'</option>'; }).join('');
-  }
-  var servicios = getServiciosUnicos();
-  var motivos = getMotivosReclamoUnicos();
-
-  var html = '<div class="filter-panel">' +
-    '<div class="filter-panel-header">🔍 Filtrar casos</div>' +
-    '<div class="filter-grid">' +
-      '<div class="filter-group filter-span2"><label>Buscar</label>' +
-        '<input type="text" id="dir-casos-buscar" value="'+fBuscar+'" placeholder="Nombre, sede, tipo..." oninput="renderDireccionCasos()"></div>' +
-      '<div class="filter-group"><label>Sede</label>' +
-        '<select id="dir-casos-sede" onchange="renderDireccionCasos()">'+sedeSelectHtml+'</select></div>' +
-      '<div class="filter-group"><label>Tipo</label>' +
-        '<select id="dir-casos-tipo" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos los tipos</option>' +
-          ['Queja / Reclamo','Sugerencia','Felicitación'].map(function(s){ return '<option'+(fTipo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Estado</label>' +
-        '<select id="dir-casos-estado" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos los estados</option>' +
-          ['Caso Nuevo','Pendiente','Derivado a Responsable','Respuesta del Responsable','Cerrado'].map(function(s){ return '<option'+(fEstado===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Criticidad</label>' +
-        '<select id="dir-casos-criticidad" onchange="renderDireccionCasos()">' +
-          '<option value="">Toda criticidad</option>' +
-          CRITICIDADES_GESTION.map(function(s){ return '<option'+(fCrit===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Vencimiento</label>' +
-        '<select id="dir-casos-vencimiento" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos</option>' +
-          '<option value="vencido"'+(fVenc==='vencido'?' selected':'')+'>⛔ Vencidos</option>' +
-          '<option value="48hs"'+(fVenc==='48hs'?' selected':'')+'>⚠️ Próximos a vencer (48hs)</option>' +
-          '<option value="novencido"'+(fVenc==='novencido'?' selected':'')+'>✅ No vencidos</option>' +
-        '</select></div>' +
-      '<div class="filter-group"><label>Tipo de Reclamo</label>' +
-        '<select id="dir-casos-tipo-reclamo" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos</option>' +
-          TIPOS_RECLAMO_LIST.map(function(s){ return '<option'+(fTipoRec===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Motivo</label>' +
-        '<select id="dir-casos-motivo" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos los motivos</option>' +
-          motivos.map(function(s){ return '<option'+(fMotivo===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Servicio</label>' +
-        '<select id="dir-casos-servicio" onchange="renderDireccionCasos()">' +
-          '<option value="">Todos los servicios</option>' +
-          servicios.map(function(s){ return '<option'+(fServicio===s?' selected':'')+'>'+s+'</option>'; }).join('') +
-        '</select></div>' +
-      '<div class="filter-group"><label>Fecha desde</label>' +
-        '<input type="date" id="dir-casos-fecha-desde" value="'+fDesde+'" onchange="renderDireccionCasos()"></div>' +
-      '<div class="filter-group"><label>Fecha hasta</label>' +
-        '<input type="date" id="dir-casos-fecha-hasta" value="'+fHasta+'" onchange="renderDireccionCasos()"></div>' +
-      '<div class="filter-group" style="justify-content:flex-end">' +
-        '<button class="btn btn-ghost" onclick="limpiarFiltrosDireccionCasos()" style="width:100%">✕ Limpiar filtros</button></div>' +
-    '</div></div>';
-
-  html += '<div class="full-panel"><div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--green-pale);flex-wrap:wrap;gap:8px">' +
+  var html = '<div class="full-panel"><div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--green-pale);flex-wrap:wrap;gap:8px">' +
     '<div class="toolbar-title">📋 <span>'+casos.length+' caso'+(casos.length!==1?'s':'')+'</span></div>' +
     '<button class="btn btn-outline" onclick="exportarExcelDireccion()" style="font-size:0.8rem;padding:7px 14px">⬇️ Exportar Excel</button>' +
   '</div>';
 
   if (casos.length === 0) {
     html += '<div class="empty-state">No hay casos registrados para este filtro.</div></div>';
-    cont.innerHTML = html;
+    wrap.innerHTML = html;
     return;
   }
 
@@ -3135,7 +3182,7 @@ function renderDireccionCasos() {
         '</tr>';
     }).join('') +
     '</tbody></table></div></div>';
-  cont.innerHTML = html;
+  wrap.innerHTML = html;
 }
 
 function exportarExcelDireccion() {
@@ -3388,6 +3435,34 @@ function cerrarCasoDir(id) {
     }
     renderDireccionView();
   }
+}
+
+// Si llega una actualización en tiempo real (de CUALQUIER caso del sistema) mientras el
+// responsable está escribiendo una respuesta sin guardar todavía, el re-render normal
+// perdería ese texto. Estas funciones lo guardan antes y lo restauran después, siempre
+// que el campo siga vacío/editable (si ya se guardó de verdad, no se pisa).
+function renderUserViewPreservandoBorradores() {
+  var drafts = {};
+  document.querySelectorAll('textarea[id^="resp-"], textarea[id^="accion-"]').forEach(function(el) {
+    if (!el.readOnly && !el.disabled && el.value) drafts[el.id] = el.value;
+  });
+  renderUserView();
+  Object.keys(drafts).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.readOnly && !el.disabled && !el.value) el.value = drafts[id];
+  });
+}
+
+function renderDireccionViewPreservandoBorradores() {
+  var drafts = {};
+  document.querySelectorAll('textarea[id^="com-dir-"]').forEach(function(el) {
+    if (!el.readOnly && !el.disabled && el.value) drafts[el.id] = el.value;
+  });
+  renderDireccionView();
+  Object.keys(drafts).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.readOnly && !el.disabled && !el.value) el.value = drafts[id];
+  });
 }
 
 function renderUserView() {
